@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import logging
 import threading
 import time
-from telegram import Bot, ParseMode
+from telegram import Bot
 
 app = Flask(__name__)
 
@@ -71,7 +71,7 @@ def action_for_offline_client():
 
 
 def send_telegram_message(message):
-    bot.send_message(chat_id=chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
+    bot.send_message(chat_id=chat_id, text=message)
 
 
 @app.route('/')
