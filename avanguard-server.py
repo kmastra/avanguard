@@ -8,7 +8,7 @@ app = Flask(__name__)
 logging.basicConfig(filename='status_log.txt', level=logging.INFO)
 
 
-@app.route('/heartbeat', method['GET'])
+@app.route('/heartbeat', methods=['GET'])
 def heartbeat():
     client_id = request.headers.get('Client-ID')
     if client_id:
