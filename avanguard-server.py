@@ -7,7 +7,7 @@ import time
 app = Flask(__name__)
 
 # Configure logging
-logging.basicConfig(filename='status_log.txt', level=logging.INFO, format=log_format)
+logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # Initialize a variable to store the last heartbeat time
 last_heartbeat_time = None
@@ -24,14 +24,11 @@ def heartbeat():
     client_ip = request.remote_addr
 
     if client_id:
-        # Get current time in a variable
-        current_time = datetime.datetime.now().strftime("%d-%m %H:%M:%S")
-
         # Update last heartbeat time
         last_heartbeat_time = time.time()
 
         # Log the heartbeat
-        log_message = f"Heartbeat received from Client ID: {client_id} , with ip: {client_ip} at {current_time}"
+        log_message = f"Heartbeat from Client ID: {client_id} , with ip: {client_ip} at {datetime.datetime.now()}"
         logging.info(log_message)
 
         return 'OK', 200
