@@ -14,7 +14,7 @@ last_heartbeat_time = None
 heartbeat_lock = threading.Lock()
 
 # Threshold for considering a client offline (in seconds)
-offline_threshold = 120  # 2 minutes
+offline_threshold = 120
 
 
 @app.route('/heartbeat', methods=['GET'])
@@ -28,7 +28,7 @@ def heartbeat():
         current_time = datetime.datetime.now().strftime("%d-%m %H:%M:%S")
 
         # Update last heartbeat time
-        last_heartbeat_time = datetime.datetime.now()
+        last_heartbeat_time = time.time()
 
         # Log the heartbeat
         log_message = f"Heartbeat received from Client ID: {client_id} , with ip: {client_ip} at {current_time}"
