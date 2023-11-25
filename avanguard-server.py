@@ -37,7 +37,7 @@ def heartbeat():
 def check_heartbeat_timeout():
     global last_heartbeat_time
     current_time = datetime.datetime.now()
-    timeout_threshold = datetime.timedelta(minutes=1)
+    timeout_threshold = datetime.timedelta(minutes=2)
 
     if current_time - last_heartbeat_time > timeout_threshold:
         # Take action when timeout threshold is exceeded
