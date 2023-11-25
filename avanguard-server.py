@@ -64,9 +64,9 @@ def action_for_offline_client():
     logging.warning("Action taken for an offline client")
 
 
-def send_telegram_message(message):
-    bot = Bot(token=telegram_bot_token)
-    bot.send_message(chat_id=chat_id, text=message)
+#def send_telegram_message(message):
+#    bot = Bot(token=telegram_bot_token)
+#    bot.send_message(chat_id=chat_id, text=message)
 
 
 @app.route('/')
