@@ -1,15 +1,21 @@
 from flask import Flask, request, jsonify
 import logging
 import datetime
-from threading import Timer
+import threading
+import time
 
 app = Flask(__name__)
 
 # Configure logging
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
-# Initialize last heartbeat time
-last_heartbeat_time = datetime.datetime.now()
+# Initialize a variable to store the last heartbeat time
+last_heartbeat_time = None
+heartbeat_lock = threading.Lock()
+
+# Threshold for considering a client offline (in seconds)
+offline_threshold = 120  # 2 minutes
+
 
 @app.route('/heartbeat', methods=['GET'])
 def heartbeat():
@@ -34,22 +40,28 @@ def heartbeat():
         return jsonify({'error': 'Invalid request'}), 400
 
 
-def check_heartbeat_timeout():
+def check_heartbeat():
     global last_heartbeat_time
-    current_time = datetime.datetime.now()
-    timeout_threshold = datetime.timedelta(minutes=2)
+    while True:
+        time.sleep(60)  # Check every minute
+        with heartbeat_lock:
+            if last_heartbeat_time is not None:
+                elapsed_time = time.time() - last_heartbeat_time
+                if elapsed_time > offline_threshold:
+                    # Perform the action for an offline client
+                    action_for_offline_client()
+                    last_heartbeat_time = None  # Reset the last heartbeat time
 
-    time_since_last_heartbeat = current_time - last_heartbeat_time
-    time_until_next_execution = max(0, 60 - time_since_last_heartbeat.total_seconds())
-    logging.warning(f"Heartbeat counter. initiated!!")
-    if time_since_last_heartbeat > timeout_threshold:
-        # Take action when timeout threshold is exceeded
-        logging.warning(f"Heartbeat timeout! No heartbeat received for more than 2 minutes. Start the alarm.")
+# Start the background thread to check for heartbeat
+heartbeat_thread = threading.Thread(target=check_heartbeat)
+heartbeat_thread.start()
 
-    # Reschedule the timer with the time until the next execution
-    timer = Timer(time_until_next_execution, check_heartbeat_timeout)
-    timer.daemon = True
-    timer.start()
+
+def action_for_offline_client():
+    # This is where you define the action to be taken for an offline client
+    # For example, send a notification, update a database, etc.
+    logging.warning("Action taken for an offline client")
+
 
 @app.route('/')
 def display_log():
