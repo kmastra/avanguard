@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import logging
 import threading
 import time
-#from telegram import Bot
+from telegram import Bot
 
 app = Flask(__name__)
 
@@ -17,8 +17,8 @@ heartbeat_lock = threading.Lock()
 offline_threshold = 120
 
 # Telegram Bot Token
-#telegram_bot_token = '6812967181:AAGPOZxXMm5zkw49EFJx5eKLSsjNuobXkC8'
-#chat_id = '5881099950'  # Your personal chat ID or a group chat ID
+telegram_bot_token = '6812967181:AAGPOZxXMm5zkw49EFJx5eKLSsjNuobXkC8'
+chat_id = '5881099950'  # Your personal chat ID or a group chat ID
 
 
 @app.route('/heartbeat', methods=['GET'])
@@ -61,12 +61,14 @@ heartbeat_thread.start()
 def action_for_offline_client():
     # This is where you define the action to be taken for an offline client
     # For example, send a notification, update a database, etc.
+    message = "Client is offline!"
+    send_telegram_notification(message)
     logging.warning("Action taken for an offline client")
 
 
-#def send_telegram_message(message):
-#    bot = Bot(token=telegram_bot_token)
-#    bot.send_message(chat_id=chat_id, text=message)
+def send_telegram_message(message):
+    bot = Bot(token=telegram_bot_token)
+    bot.send_message(chat_id=chat_id, text=message)
 
 
 @app.route('/')
