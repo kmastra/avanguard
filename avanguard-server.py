@@ -41,7 +41,7 @@ def check_heartbeat_timeout():
 
     time_since_last_heartbeat = current_time - last_heartbeat_time
     time_until_next_execution = max(0, 60 - time_since_last_heartbeat.total_seconds())
-
+    logging.warning(f"Heartbeat counter. initiated!!")
     if time_since_last_heartbeat > timeout_threshold:
         # Take action when timeout threshold is exceeded
         logging.warning(f"Heartbeat timeout! No heartbeat received for more than 2 minutes. Start the alarm.")
