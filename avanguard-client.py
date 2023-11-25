@@ -2,7 +2,7 @@ import requests
 import time
 import uuid
 
-serverurl = "http://161.97.65.201:5000/update_status"
+serverurl = "http://161.97.65.201:5000/heartbeat"
 client_id = str(uuid.uuid4())
 
 def main():

@@ -1,21 +1,31 @@
 from flask import Flask, request, jsonify
 import logging
 import datetime
+from threading import Timer
 
 app = Flask(__name__)
 
 # Configure logging
-logging.basicConfig(filename='status_log.txt', level=logging.INFO)
+logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
+# Initialize last heartbeat time
+last_heartbeat_time = datetime.datetime.now()
 
 @app.route('/heartbeat', methods=['GET'])
 def heartbeat():
+    global last_heartbeat_time
     client_id = request.headers.get('Client-ID')
+    client_ip = request.remote_addr
+
     if client_id:
-        current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # Get current time in a variable
+        current_time = datetime.datetime.now().strftime("%d-%m %H:%M:%S")
+
+        # Update last heartbeat time
+        last_heartbeat_time = datetime.datetime.now()
 
         # Log the heartbeat
-        log_message = f"Heartbeat received from Client ID: {client_id} at {current_time}"
+        log_message = f"Heartbeat received from Client ID: {client_id} , with ip: {client_ip} at {current_time}"
         logging.info(log_message)
 
         return 'OK', 200
@@ -23,6 +33,20 @@ def heartbeat():
         # Handle regular GET requests
         return jsonify({'error': 'Invalid request'}), 400
 
+
+def check_heartbeat_timeout():
+    global last_heartbeat_time
+    current_time = datetime.datetime.now()
+    timeout_threshold = datetime.timedelta(minutes=1)
+
+    if current_time - last_heartbeat_time > timeout_threshold:
+        # Take action when timeout threshold is exceeded
+        logging.warning(f"Heartbeat timeout! No heartbeat received for more than 2 minutes. Start the alarm.")
+
+    # Reschedule the timer
+    timer = Timer(60, check_heartbeat_timeout)  # Check every 60 seconds
+    timer.daemon = True
+    timer.start()
 
 @app.route('/')
 def display_log():
