@@ -62,7 +62,7 @@ def action_for_offline_client():
     # This is where you define the action to be taken for an offline client
     # For example, send a notification, update a database, etc.
     message = "Client is offline!"
-    send_telegram_notification(message)
+    send_telegram_message(message)
     logging.warning("Action taken for an offline client")
 
 
