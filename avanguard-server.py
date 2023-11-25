@@ -1,8 +1,8 @@
+import requests
 from flask import Flask, request, jsonify
 import logging
 import threading
 import time
-from telegram import Bot
 
 app = Flask(__name__)
 
@@ -18,7 +18,7 @@ offline_threshold = 120
 
 # Telegram Bot Token
 telegram_bot_token = '6812967181:AAGPOZxXMm5zkw49EFJx5eKLSsjNuobXkC8'
-chat_id = '5881099950'  # Your personal chat ID or a group chat ID
+telegram_chat_id  = '5881099950'  # Your personal chat ID or a group chat ID
 
 
 @app.route('/heartbeat', methods=['GET'])
@@ -67,8 +67,10 @@ def action_for_offline_client():
 
 
 def send_telegram_message(message):
-    bot = Bot(token=telegram_bot_token)
-    bot.send_message(chat_id=chat_id, text=message)
+    url = f'https://api.telegram.org/bot{telegram_bot_token}/sendMessage'
+    params = {'chat_id': telegram_chat_id, 'text': message}
+    response = requests.post(url, params=params)
+    return response.json()
 
 
 @app.route('/')
