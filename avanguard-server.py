@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 import logging
-import datetime
 import threading
 import time
 
@@ -28,7 +27,7 @@ def heartbeat():
         last_heartbeat_time = time.time()
 
         # Log the heartbeat
-        log_message = f"Heartbeat from Client ID: {client_id} , with ip: {client_ip} at {datetime.datetime.now()}"
+        log_message = f"Heartbeat from Client ID: {client_id} , with ip: {client_ip}"
         logging.info(log_message)
 
         return 'OK', 200
