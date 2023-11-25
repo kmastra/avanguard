@@ -11,8 +11,8 @@ def display_log():
     # Read and display the content of the status log
     try:
         with open('status_log.txt', 'r') as log_file:
-            log_content = log_file.read()
-        return log_content
+            log_content = log_file.read().replace('\n', '<br>')
+        return f"<html><body>{log_content}</body></html>"
     except FileNotFoundError:
         return 'Status log not found'
 
