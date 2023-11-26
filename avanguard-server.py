@@ -42,7 +42,6 @@ def heartbeat():
         return jsonify({'error': 'Invalid request'}), 400
 
 
-# noinspection PyTypeChecker
 def check_heartbeat():
     global last_heartbeat_time
     while True:
@@ -52,8 +51,8 @@ def check_heartbeat():
                 elapsed_time = time.time() - last_heartbeat_time
                 if elapsed_time > offline_threshold:
                     # Perform the action for an offline client
+                    logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
                     action_for_offline_client()
-                    last_heartbeat_time = None  # Reset the last heartbeat time
 
 
 # Start the background thread to check for heartbeat
@@ -69,7 +68,7 @@ def action_for_offline_client():
     body = "Take appropriate action."
     send_pushbullet_notification(title, body)
 
-    logging.warning("Action taken for an offline client")
+    logging.warning("Informed via Pushbullet.")
 
 
 def send_pushbullet_notification(title, body):
