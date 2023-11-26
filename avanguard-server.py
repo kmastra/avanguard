@@ -1,8 +1,8 @@
-import requests
 from flask import Flask, request, jsonify
 import logging
 import threading
 import time
+from pushbullet import Pushbullet
 
 app = Flask(__name__)
 
@@ -17,8 +17,8 @@ heartbeat_lock = threading.Lock()
 offline_threshold = 120
 
 # Telegram Bot Token
-telegram_bot_token = '6812967181:AAGPOZxXMm5zkw49EFJx5eKLSsjNuobXkC8'
-telegram_chat_id  = '5881099950'  # Your personal chat ID or a group chat ID
+#telegram_bot_token = '6812967181:AAGPOZxXMm5zkw49EFJx5eKLSsjNuobXkC8'
+#telegram_chat_id  = '5881099950'  # Your personal chat ID or a group chat ID
 
 
 @app.route('/heartbeat', methods=['GET'])
@@ -59,18 +59,27 @@ heartbeat_thread.start()
 
 
 def action_for_offline_client():
-    # This is where you define the action to be taken for an offline client
-    # For example, send a notification, update a database, etc.
-    message = "Client is offline!"
-    send_telegram_message(message)
+#    message = "Client is offline!"
+#    send_telegram_message(message)
+
+    title = "Client is offline!"
+    body = "Take appropriate action."
+    send_pushbullet_notification(title, body)
+
     logging.warning("Action taken for an offline client")
 
 
-def send_telegram_message(message):
+def send_pushbullet_notification(title, body):
+    api_key = 'o.Cl5Zbi4nTU9uUlOPYB82bIbRHmVYbRwi'
+    pb = Pushbullet(api_key)
+    push = pb.push_note(title, body)
+
+
+'''def send_telegram_message(message):
     url = f'https://api.telegram.org/bot{telegram_bot_token}/sendMessage'
     params = {'chat_id': telegram_chat_id, 'text': message}
     response = requests.post(url, params=params)
-    return response.json()
+    return response.json()'''
 
 
 @app.route('/')
