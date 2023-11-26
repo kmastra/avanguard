@@ -10,12 +10,18 @@ app = Flask(__name__)
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # Initialize a variable to store the last heartbeat time
+elapsed_time = None
 last_heartbeat_time = None
 heartbeat_lock = threading.Lock()
 
 # Threshold for considering a client offline (in seconds)
 offline_threshold = 120
 
+# Pushbullet Api Key
+pushbullet_api_key = 'o.Cl5Zbi4nTU9uUlOPYB82bIbRHmVYbRwi'
+
+# Initialize a variable to save the state of Clients
+hawkeye = False
 
 # Telegram Bot Token
 # telegram_bot_token = '6812967181:AAGPOZxXMm5zkw49EFJx5eKLSsjNuobXkC8'
@@ -24,6 +30,7 @@ offline_threshold = 120
 
 @app.route('/heartbeat', methods=['GET'])
 def heartbeat():
+    global hawkeye
     global last_heartbeat_time
     client_id = request.headers.get('Client-ID')
     client_ip = request.remote_addr
@@ -33,8 +40,19 @@ def heartbeat():
         last_heartbeat_time = time.time()
 
         # Log the heartbeat
-        log_message = f"Heartbeat from Client ID: {client_id} , with ip: {client_ip}"
-        logging.info(log_message)
+        logging.info(f"Heartbeat from Client ID: {client_id} , with ip: {client_ip}")
+        if not hawkeye:
+            hawkeye = True
+            logging.info(f"Hawkeye back online after {elapsed_time} seconds.")
+            if elapsed_time < 300:
+                title = "Hawkeye is up!"
+                body = f"Possible short power outage. Seconds taken {elapsed_time}."
+                send_pushbullet_not(title, body)
+            elif:
+                title = "Hawkeye is up!"
+                body = f"Seconds taken {elapsed_time}."
+                send_pushbullet_not(title, body)
+
 
         return 'OK', 200
     else:
@@ -44,6 +62,8 @@ def heartbeat():
 
 def check_heartbeat():
     global last_heartbeat_time
+    global elapsed_time
+    global hawkeye
     while True:
         time.sleep(60)  # Check every minute
         with heartbeat_lock:
@@ -52,7 +72,10 @@ def check_heartbeat():
                 if elapsed_time > offline_threshold:
                     # Perform the action for an offline client
                     logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
-                    action_for_offline_client()
+                    hawkeye = False
+                    title = "Hawkeye is down!"
+                    body = "Take immediate action."
+                    send_pushbullet_not(title, body)
 
 
 # Start the background thread to check for heartbeat
@@ -60,21 +83,10 @@ heartbeat_thread = threading.Thread(target=check_heartbeat)
 heartbeat_thread.start()
 
 
-def action_for_offline_client():
-    #    message = "Client is offline!"
-    #    send_telegram_message(message)
-
-    title = "Client is offline!"
-    body = "Take appropriate action."
-    send_pushbullet_notification(title, body)
-
-    logging.warning("Informed via Pushbullet.")
-
-
-def send_pushbullet_notification(title, body):
-    api_key = 'o.Cl5Zbi4nTU9uUlOPYB82bIbRHmVYbRwi'
-    pb = Pushbullet(api_key)
+def send_pushbullet_not(title, body):
+    pb = Pushbullet(pushbullet_api_key)
     pb.push_note(title, body)
+    logging.warning(f"Send via Pushbullet. {title} {body}")
 
 
 '''def send_telegram_message(message):
