@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import logging
 import threading
 import time
-from pushbullet import Pushbullet
+import pushbullet
 
 app = Flask(__name__)
 
@@ -71,7 +71,7 @@ def action_for_offline_client():
 
 def send_pushbullet_notification(title, body):
     api_key = 'o.Cl5Zbi4nTU9uUlOPYB82bIbRHmVYbRwi'
-    pb = Pushbullet(api_key)
+    pb = pushbullet.Pushbullet(api_key)
     push = pb.push_note(title, body)
 
 
