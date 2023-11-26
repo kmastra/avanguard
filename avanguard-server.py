@@ -16,9 +16,10 @@ heartbeat_lock = threading.Lock()
 # Threshold for considering a client offline (in seconds)
 offline_threshold = 120
 
+
 # Telegram Bot Token
-#telegram_bot_token = '6812967181:AAGPOZxXMm5zkw49EFJx5eKLSsjNuobXkC8'
-#telegram_chat_id  = '5881099950'  # Your personal chat ID or a group chat ID
+# telegram_bot_token = '6812967181:AAGPOZxXMm5zkw49EFJx5eKLSsjNuobXkC8'
+# telegram_chat_id  = '5881099950'  # Your personal chat ID or a group chat ID
 
 
 @app.route('/heartbeat', methods=['GET'])
@@ -41,6 +42,7 @@ def heartbeat():
         return jsonify({'error': 'Invalid request'}), 400
 
 
+# noinspection PyTypeChecker
 def check_heartbeat():
     global last_heartbeat_time
     while True:
@@ -53,14 +55,15 @@ def check_heartbeat():
                     action_for_offline_client()
                     last_heartbeat_time = None  # Reset the last heartbeat time
 
+
 # Start the background thread to check for heartbeat
 heartbeat_thread = threading.Thread(target=check_heartbeat)
 heartbeat_thread.start()
 
 
 def action_for_offline_client():
-#    message = "Client is offline!"
-#    send_telegram_message(message)
+    #    message = "Client is offline!"
+    #    send_telegram_message(message)
 
     title = "Client is offline!"
     body = "Take appropriate action."
@@ -72,7 +75,7 @@ def action_for_offline_client():
 def send_pushbullet_notification(title, body):
     api_key = 'o.Cl5Zbi4nTU9uUlOPYB82bIbRHmVYbRwi'
     pb = Pushbullet(api_key)
-    push = pb.push_note(title, body)
+    pb.push_note(title, body)
 
 
 '''def send_telegram_message(message):
@@ -108,7 +111,6 @@ def update_status():
         return jsonify({'message': 'Status updated successfully'})
     else:
         return jsonify({'error': 'Invalid data format'}), 400'''
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
