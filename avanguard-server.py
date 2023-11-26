@@ -48,7 +48,7 @@ def heartbeat():
                 title = "Hawkeye is up!"
                 body = f"Possible short power outage. Seconds taken {elapsed_time}."
                 send_pushbullet_not(title, body)
-            elif:
+            else:
                 title = "Hawkeye is up!"
                 body = f"Seconds taken {elapsed_time}."
                 send_pushbullet_not(title, body)
