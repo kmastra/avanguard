@@ -42,7 +42,7 @@ def heartbeat():
 
         # Log the heartbeat
         logging.info(f"Heartbeat from Client ID: {client_id} , with ip: {client_ip}")
-        if not hawkeye:
+        if hawkeye == False:
             hawkeye = True
             if elapsed_time < 300:
                 title = "Hawkeye is up!"
