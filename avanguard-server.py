@@ -33,16 +33,18 @@ hawkeye = False
 def heartbeat():
     global hawkeye
     global last_heartbeat_time
+    global elapsed_time
     client_id = request.headers.get('Client-ID')
     client_ip = request.remote_addr
 
     if client_id:
-        # Update last heartbeat time
+        # Update last heartbeat time and elapsed time
+        elapsed_time = time.time() - last_heartbeat_time
         last_heartbeat_time = time.time()
 
         # Log the heartbeat
         logging.info(f"Heartbeat from Client ID: {client_id} , with ip: {client_ip}")
-        if hawkeye == False:
+        if not hawkeye:
             hawkeye = True
             if elapsed_time < 300:
                 title = "Hawkeye is up!"
