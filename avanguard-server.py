@@ -10,7 +10,7 @@ app = Flask(__name__)
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # Initialize a variable to store the last heartbeat time
-last_heartbeat_time: int
+last_heartbeat_time = 1
 heartbeat_lock = threading.Lock()
 
 # Threshold for considering a client offline (in seconds)
