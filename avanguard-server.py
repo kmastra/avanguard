@@ -61,18 +61,23 @@ def heartbeat():
 
 def check_heartbeat():
     global last_heartbeat_time
+    exceeded_threshold = False
     #global hawkeye
     while True:
         time.sleep(60)  # Check every minute
         with heartbeat_lock:
             elapsed_time = time.time() - last_heartbeat_time
-            if elapsed_time > offline_threshold:
+            if elapsed_time > offline_threshold and not exceeded_threshold:
                 # Perform the action for an offline client
                 logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
                 #hawkeye = False
                 title = "Hawkeye is down!"
                 body = "Take immediate action."
                 send_pushbullet_not(title, body)
+                exceeded_threshold = True  # Set the flag to avoid repeated actions
+            elif elapsed_time <= offline_threshold:
+                # Reset the flag if the heartbeat is received within the threshold
+                exceeded_threshold = False
 
 
 # Start the background thread to check for heartbeat
