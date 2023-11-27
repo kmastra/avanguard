@@ -10,8 +10,8 @@ app = Flask(__name__)
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # Initialize a variable to store the last heartbeat time
-elapsed_time = None
-last_heartbeat_time = None
+elapsed_time = 1
+last_heartbeat_time = time.time()
 heartbeat_lock = threading.Lock()
 
 # Threshold for considering a client offline (in seconds)
@@ -22,6 +22,7 @@ pushbullet_api_key = 'o.Cl5Zbi4nTU9uUlOPYB82bIbRHmVYbRwi'
 
 # Initialize a variable to save the state of Clients
 hawkeye = False
+
 
 # Telegram Bot Token
 # telegram_bot_token = '6812967181:AAGPOZxXMm5zkw49EFJx5eKLSsjNuobXkC8'
@@ -43,16 +44,14 @@ def heartbeat():
         logging.info(f"Heartbeat from Client ID: {client_id} , with ip: {client_ip}")
         if not hawkeye:
             hawkeye = True
-            logging.info(f"Hawkeye back online after {elapsed_time} seconds.")
             if elapsed_time < 300:
                 title = "Hawkeye is up!"
                 body = f"Possible short power outage. Seconds taken {elapsed_time}."
                 send_pushbullet_not(title, body)
             else:
                 title = "Hawkeye is up!"
-                body = f"Seconds taken {elapsed_time}."
+                body = f"Hawkeye back online after {elapsed_time} seconds."
                 send_pushbullet_not(title, body)
-
 
         return 'OK', 200
     else:
