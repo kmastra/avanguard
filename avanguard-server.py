@@ -10,8 +10,7 @@ app = Flask(__name__)
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # Initialize a variable to store the last heartbeat time
-elapsed_time = 1
-last_heartbeat_time = time.time()
+last_heartbeat_time: int
 heartbeat_lock = threading.Lock()
 
 # Threshold for considering a client offline (in seconds)
@@ -21,7 +20,7 @@ offline_threshold = 120
 pushbullet_api_key = 'o.Cl5Zbi4nTU9uUlOPYB82bIbRHmVYbRwi'
 
 # Initialize a variable to save the state of Clients
-hawkeye = False
+hawkeye: bool
 
 
 # Telegram Bot Token
@@ -33,7 +32,6 @@ hawkeye = False
 def heartbeat():
     global hawkeye
     global last_heartbeat_time
-    global elapsed_time
     client_id = request.headers.get('Client-ID')
     client_ip = request.remote_addr
 
@@ -63,20 +61,18 @@ def heartbeat():
 
 def check_heartbeat():
     global last_heartbeat_time
-    global elapsed_time
     global hawkeye
     while True:
         time.sleep(60)  # Check every minute
         with heartbeat_lock:
-            if last_heartbeat_time is not None:
-                elapsed_time = time.time() - last_heartbeat_time
-                if elapsed_time > offline_threshold:
-                    # Perform the action for an offline client
-                    logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
-                    hawkeye = False
-                    title = "Hawkeye is down!"
-                    body = "Take immediate action."
-                    send_pushbullet_not(title, body)
+            elapsed_time = time.time() - last_heartbeat_time
+            if elapsed_time > offline_threshold:
+                # Perform the action for an offline client
+                logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
+                hawkeye = False
+                title = "Hawkeye is down!"
+                body = "Take immediate action."
+                send_pushbullet_not(title, body)
 
 
 # Start the background thread to check for heartbeat
