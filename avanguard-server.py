@@ -20,7 +20,7 @@ offline_threshold = 120
 pushbullet_api_key = 'o.Cl5Zbi4nTU9uUlOPYB82bIbRHmVYbRwi'
 
 # Initialize a variable to save the state of Clients
-hawkeye = True
+#hawkeye = True
 
 
 # Telegram Bot Token
@@ -30,19 +30,19 @@ hawkeye = True
 
 @app.route('/heartbeat', methods=['GET'])
 def heartbeat():
-    global hawkeye
+    #global hawkeye
     global last_heartbeat_time
     client_id = request.headers.get('Client-ID')
     client_ip = request.remote_addr
 
     if client_id:
         # Update last heartbeat time and elapsed time
-        elapsed_time = time.time() - last_heartbeat_time
+        #elapsed_time = time.time() - last_heartbeat_time
         last_heartbeat_time = time.time()
 
         # Log the heartbeat
         logging.info(f"Heartbeat from Client ID: {client_id} , with ip: {client_ip}")
-        if not hawkeye:
+        '''if not hawkeye:
             hawkeye = True
             if elapsed_time < 300:
                 title = "Hawkeye is up!"
@@ -51,7 +51,7 @@ def heartbeat():
             else:
                 title = "Hawkeye is up!"
                 body = f"Hawkeye back online after {elapsed_time} seconds."
-                send_pushbullet_not(title, body)
+                send_pushbullet_not(title, body)'''
 
         return 'OK', 200
     else:
@@ -61,7 +61,7 @@ def heartbeat():
 
 def check_heartbeat():
     global last_heartbeat_time
-    global hawkeye
+    #global hawkeye
     while True:
         time.sleep(60)  # Check every minute
         with heartbeat_lock:
@@ -69,7 +69,7 @@ def check_heartbeat():
             if elapsed_time > offline_threshold:
                 # Perform the action for an offline client
                 logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
-                hawkeye = False
+                #hawkeye = False
                 title = "Hawkeye is down!"
                 body = "Take immediate action."
                 send_pushbullet_not(title, body)
