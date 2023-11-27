@@ -10,7 +10,7 @@ app = Flask(__name__)
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # Initialize a variable to store the last heartbeat time
-last_heartbeat_time = 1
+last_heartbeat_time = time.time()
 heartbeat_lock = threading.Lock()
 
 # Threshold for considering a client offline (in seconds)
@@ -20,7 +20,7 @@ offline_threshold = 120
 pushbullet_api_key = 'o.Cl5Zbi4nTU9uUlOPYB82bIbRHmVYbRwi'
 
 # Initialize a variable to save the state of Clients
-hawkeye: bool
+hawkeye = True
 
 
 # Telegram Bot Token
