@@ -12,6 +12,7 @@ logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asc
 # Initialize a variable to store the last heartbeat time
 last_heartbeat_time = time.time()
 heartbeat_lock = threading.Lock()
+heartbeat_event = threading.Event()
 
 # Threshold for considering a client offline (in seconds)
 offline_threshold = 120
@@ -28,7 +29,7 @@ def heartbeat():
 
     if client_id:
         # Update last heartbeat time and elapsed time
-        #elapsed_time = time.time() - last_heartbeat_time
+        # elapsed_time = time.time() - last_heartbeat_time
         last_heartbeat_time = time.time()
 
         # Log the heartbeat
@@ -54,6 +55,10 @@ def check_heartbeat():
     global last_heartbeat_time
 
     while True:
+        # Wait for the event to be set (allowing the function to run)
+        heartbeat_event.wait()
+        # Reset the event to not run the function until set again
+        heartbeat_event.clear()
         time.sleep(60)  # Check every minute
         with heartbeat_lock:
             elapsed_time = time.time() - last_heartbeat_time
@@ -63,18 +68,18 @@ def check_heartbeat():
                 title = "Hawkeye is down!"
                 body = "Take immediate action."
                 send_pushbullet_not(title, body)
-            #elif elapsed_time <= offline_threshold:
+            # elif elapsed_time <= offline_threshold:
 
 
 # Start the background thread to check for heartbeat
-heartbeat_thread = threading.Thread(target=check_heartbeat).start()
+heartbeat_thread = threading.Thread(target=check_heartbeat)
+heartbeat_thread.start()
 
 
 def send_pushbullet_not(title, body):
     pb = Pushbullet(pushbullet_api_key)
     pb.push_note(title, body)
     logging.warning(f"Send via Pushbullet. {title} {body}")
-
 
 
 @app.route('/')
@@ -89,4 +94,5 @@ def display_log():
 
 
 if __name__ == '__main__':
+    heartbeat_event.set()
     app.run(host='0.0.0.0', port=5000)
