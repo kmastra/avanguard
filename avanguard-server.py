@@ -11,11 +11,14 @@ app = Flask(__name__)
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # Initialize a variable to store the last heartbeat time ee
-last_heartbeat_time = time.time()
 heartbeat_lock = threading.Lock()
 
 # Threshold for considering a client offline (in seconds)
+last_heartbeat_time = time.time()
 offline_threshold = 120
+offline = False
+elapsed_time = 1
+failed_heartbeat_time =time.time()
 
 # Pushbullet Api Key
 pushbullet_api_key = 'o.Cl5Zbi4nTU9uUlOPYB82bIbRHmVYbRwi'
@@ -23,7 +26,7 @@ pushbullet_api_key = 'o.Cl5Zbi4nTU9uUlOPYB82bIbRHmVYbRwi'
 
 @app.route('/heartbeat', methods=['GET'])
 def heartbeat():
-    global last_heartbeat_time
+    global last_heartbeat_time, offline
     client_id = request.headers.get('Client-ID')
     client_ip = request.remote_addr
 
@@ -35,6 +38,21 @@ def heartbeat():
         # Log the heartbeat
         logging.info(f"Heartbeat from Client ID: {client_id} , with ip: {client_ip}")
 
+        if elapsed_time <= offline_threshold and offline:
+            offline = False
+            temp_time = time.time() - failed_heartbeat_time
+            downtime = str(timedelta(seconds=temp_time)).split(".")[0]
+            if temp_time < 300:
+                logging.info(f"Hawkeye back up after {downtime}. Possible short power outage.")
+                title = "Hawkeye is up!"
+                body = f"Possible short power outage. Time taken {downtime}."
+                send_pushbullet_not(title, body)
+            else:
+                logging.info(f"Hawkeye back up after {downtime}.")
+                title = "Hawkeye is up!"
+                body = f"Hawkeye back online after {downtime}."
+                send_pushbullet_not(title, body)
+
         return 'OK', 200
     else:
         # Handle regular GET requests
@@ -42,8 +60,7 @@ def heartbeat():
 
 
 def check_heartbeat():
-    global last_heartbeat_time
-    offline = False
+    global last_heartbeat_time, offline, elapsed_time, failed_heartbeat_time
     while True:
         time.sleep(60)  # Check every minute
         with heartbeat_lock:
@@ -57,20 +74,6 @@ def check_heartbeat():
                 title = "Hawkeye is down!"
                 body = f"Downtime: {downtime}"
                 send_pushbullet_not(title, body)
-            elif elapsed_time <= offline_threshold and offline:
-                offline = False
-                temp_time = time.time() - failed_heartbeat_time
-                downtime = str(timedelta(seconds=temp_time)).split(".")[0]
-                if temp_time < 300:
-                    logging.info(f"Hawkeye back up after {downtime}. Possible short power outage.")
-                    title = "Hawkeye is up!"
-                    body = f"Possible short power outage. Time taken {downtime}."
-                    send_pushbullet_not(title, body)
-                else:
-                    logging.info(f"Hawkeye back up after {downtime}.")
-                    title = "Hawkeye is up!"
-                    body = f"Hawkeye back online after {downtime}."
-                    send_pushbullet_not(title, body)
 
 
 # Start the background thread to check for heartbeat
