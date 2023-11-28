@@ -12,7 +12,6 @@ logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asc
 # Initialize a variable to store the last heartbeat time ee
 last_heartbeat_time = time.time()
 heartbeat_lock = threading.Lock()
-heartbeat_event = threading.Event()
 
 # Threshold for considering a client offline (in seconds)
 offline_threshold = 120
@@ -55,12 +54,6 @@ def check_heartbeat():
     global last_heartbeat_time
 
     while True:
-        # Wait for the event to be set (allowing the function to run)
-        logging.info("Before waiting for heartbeat event")
-        heartbeat_event.wait()
-        logging.info("After waiting for heartbeat event")
-        # Reset the event to not run the function until set again
-        heartbeat_event.clear()
         time.sleep(60)  # Check every minute
         with heartbeat_lock:
             elapsed_time = time.time() - last_heartbeat_time
@@ -96,5 +89,4 @@ def display_log():
 
 
 if __name__ == '__main__':
-    heartbeat_event.set()
     app.run(host='0.0.0.0', port=5000)
