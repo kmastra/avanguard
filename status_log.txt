@@ -1,8 +1,0 @@
-2023-11-28 09:09:45,639 - Before waiting for heartbeat event
-2023-11-28 09:09:45,639 - After waiting for heartbeat event
-2023-11-28 09:09:46,634 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
- * Running on all addresses (0.0.0.0)
- * Running on http://127.0.0.1:5000
- * Running on http://192.168.1.4:5000
-2023-11-28 09:09:46,634 - [33mPress CTRL+C to quit[0m
-2023-11-28 09:09:48,105 - 127.0.0.1 - - [28/Nov/2023 09:09:48] "GET / HTTP/1.1" 200 -
