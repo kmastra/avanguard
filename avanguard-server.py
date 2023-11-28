@@ -17,7 +17,6 @@ heartbeat_lock = threading.Lock()
 last_heartbeat_time = time.time()
 offline_threshold = 120
 offline = False
-elapsed_time = 1
 failed_heartbeat_time =time.time()
 
 # Pushbullet Api Key
@@ -37,6 +36,7 @@ def heartbeat():
 
         # Log the heartbeat
         logging.info(f"Heartbeat from Client ID: {client_id} , with ip: {client_ip}")
+        elapsed_time = time.time() - last_heartbeat_time
 
         if elapsed_time <= offline_threshold and offline:
             offline = False
@@ -60,7 +60,7 @@ def heartbeat():
 
 
 def check_heartbeat():
-    global last_heartbeat_time, offline, elapsed_time, failed_heartbeat_time
+    global offline, failed_heartbeat_time
     while True:
         time.sleep(60)  # Check every minute
         with heartbeat_lock:
