@@ -31,12 +31,11 @@ def heartbeat():
 
     if client_id:
         # Update last heartbeat time and elapsed time
-
+        elapsed_time = time.time() - last_heartbeat_time
         last_heartbeat_time = time.time()
 
         # Log the heartbeat
         logging.info(f"Heartbeat from Client ID: {client_id} , with ip: {client_ip}")
-        elapsed_time = time.time() - last_heartbeat_time
 
         if elapsed_time <= offline_threshold and offline:
             offline = False
