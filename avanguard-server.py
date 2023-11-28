@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import logging
 import threading
 import time
+from datetime import timedelta
 from pushbullet import Pushbullet
 
 app = Flask(__name__)
@@ -57,14 +58,17 @@ def check_heartbeat():
                 send_pushbullet_not(title, body)
             elif elapsed_time <= offline_threshold and offline:
                 offline = False
-                temp_time = failed_heartbeat_time - time.time()
+                temp_time = time.time() - failed_heartbeat_time
+                downtime = str(timedelta(seconds=temp_time))
                 if temp_time < 300:
+                    logging.info(f"Hawkeye back up after {downtime}. Possible short power outage.")
                     title = "Hawkeye is up!"
-                    body = f"Possible short power outage. Seconds taken {temp_time}."
+                    body = f"Possible short power outage. Seconds taken {downtime}."
                     send_pushbullet_not(title, body)
                 else:
+                    logging.info(f"Hawkeye back up after {downtime}.")
                     title = "Hawkeye is up!"
-                    body = f"Hawkeye back online after {temp_time} seconds."
+                    body = f"Hawkeye back online after {downtime} seconds."
                     send_pushbullet_not(title, body)
 
 
