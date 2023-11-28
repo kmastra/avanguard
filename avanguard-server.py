@@ -9,7 +9,7 @@ app = Flask(__name__)
 # Configure logging
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
-# Initialize a variable to store the last heartbeat time
+# Initialize a variable to store the last heartbeat time ee
 last_heartbeat_time = time.time()
 heartbeat_lock = threading.Lock()
 heartbeat_event = threading.Event()
