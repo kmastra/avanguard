@@ -56,7 +56,9 @@ def check_heartbeat():
 
     while True:
         # Wait for the event to be set (allowing the function to run)
+        logging.info("Before waiting for heartbeat event")
         heartbeat_event.wait()
+        logging.info("After waiting for heartbeat event")
         # Reset the event to not run the function until set again
         heartbeat_event.clear()
         time.sleep(60)  # Check every minute
