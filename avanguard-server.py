@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import logging
 import threading
 import time
-from datetime import timedelta
+from datetime import timedelta, datetime
 from pushbullet import Pushbullet
 
 app = Flask(__name__)
@@ -51,24 +51,25 @@ def check_heartbeat():
             if elapsed_time > offline_threshold:
                 offline = True
                 failed_heartbeat_time = last_heartbeat_time
+                downtime = str(timedelta(seconds=elapsed_time)).split(".")[0]
                 # Perform the action for an offline client
                 logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
                 title = "Hawkeye is down!"
-                body = "Take immediate action."
+                body = f"Downtime: {downtime}"
                 send_pushbullet_not(title, body)
             elif elapsed_time <= offline_threshold and offline:
                 offline = False
                 temp_time = time.time() - failed_heartbeat_time
-                downtime = str(timedelta(seconds=temp_time))
+                downtime = str(timedelta(seconds=temp_time)).split(".")[0]
                 if temp_time < 300:
                     logging.info(f"Hawkeye back up after {downtime}. Possible short power outage.")
                     title = "Hawkeye is up!"
-                    body = f"Possible short power outage. Seconds taken {downtime}."
+                    body = f"Possible short power outage. Time taken {downtime}."
                     send_pushbullet_not(title, body)
                 else:
                     logging.info(f"Hawkeye back up after {downtime}.")
                     title = "Hawkeye is up!"
-                    body = f"Hawkeye back online after {downtime} seconds."
+                    body = f"Hawkeye back online after {downtime}."
                     send_pushbullet_not(title, body)
 
 
@@ -95,4 +96,5 @@ def display_log():
 
 
 if __name__ == '__main__':
+    logging.info(f"Script started at {datetime.now()}")
     app.run(host='0.0.0.0', port=5000)
