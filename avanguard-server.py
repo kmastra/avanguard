@@ -28,21 +28,11 @@ def heartbeat():
 
     if client_id:
         # Update last heartbeat time and elapsed time
-        # elapsed_time = time.time() - last_heartbeat_time
+
         last_heartbeat_time = time.time()
 
         # Log the heartbeat
         logging.info(f"Heartbeat from Client ID: {client_id} , with ip: {client_ip}")
-        '''if not hawkeye:
-            hawkeye = True
-            if elapsed_time < 300:
-                title = "Hawkeye is up!"
-                body = f"Possible short power outage. Seconds taken {elapsed_time}."
-                send_pushbullet_not(title, body)
-            else:
-                title = "Hawkeye is up!"
-                body = f"Hawkeye back online after {elapsed_time} seconds."
-                send_pushbullet_not(title, body)'''
 
         return 'OK', 200
     else:
@@ -52,18 +42,30 @@ def heartbeat():
 
 def check_heartbeat():
     global last_heartbeat_time
-
+    offline = False
     while True:
         time.sleep(60)  # Check every minute
         with heartbeat_lock:
             elapsed_time = time.time() - last_heartbeat_time
             if elapsed_time > offline_threshold:
+                offline = True
+                failed_heartbeat_time = last_heartbeat_time
                 # Perform the action for an offline client
                 logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
                 title = "Hawkeye is down!"
                 body = "Take immediate action."
                 send_pushbullet_not(title, body)
-            # elif elapsed_time <= offline_threshold:
+            elif elapsed_time <= offline_threshold and offline:
+                offline = False
+                temp_time = failed_heartbeat_time - time.time()
+                if temp_time < 300:
+                    title = "Hawkeye is up!"
+                    body = f"Possible short power outage. Seconds taken {temp_time}."
+                    send_pushbullet_not(title, body)
+                else:
+                    title = "Hawkeye is up!"
+                    body = f"Hawkeye back online after {temp_time} seconds."
+                    send_pushbullet_not(title, body)
 
 
 # Start the background thread to check for heartbeat
@@ -74,7 +76,7 @@ heartbeat_thread.start()
 def send_pushbullet_not(title, body):
     pb = Pushbullet(pushbullet_api_key)
     pb.push_note(title, body)
-    logging.warning(f"Send via Pushbullet. {title} {body}")
+    logging.warning(f'Send via Pushbullet. "{title} {body}"')
 
 
 @app.route('/')
