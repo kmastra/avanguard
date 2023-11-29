@@ -4,9 +4,14 @@ import threading
 import time
 from datetime import timedelta, datetime
 from pushbullet import Pushbullet
+import configparser
 
 # Initialize Flask app
 app = Flask(__name__)
+
+# Read configuration from config.ini
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 # Configure logging
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -14,12 +19,12 @@ logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asc
 # Initialize variables for heartbeat and offline detection
 heartbeat_lock = threading.Lock()
 last_heartbeat_time = time.time()
-offline_threshold = 120
+offline_threshold = int(config['Server']['offline_threshold'])
 offline = False
 failed_heartbeat_time = time.time()
 
 # Pushbullet Api Key
-pushbullet_api_key = 'o.Cl5Zbi4nTU9uUlOPYB82bIbRHmVYbRwi'
+pushbullet_api_key = config['Server']['pushbullet_api_key']
 
 
 @app.route('/heartbeat', methods=['GET'])
