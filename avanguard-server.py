@@ -104,10 +104,13 @@ def display_log():
 
         # Get the page number from the request or default to 1
         page_number = int(request.args.get('page', 1))
-        lines_per_page = 20  # Adjust the number of lines per page as needed
+        lines_per_page = 2000  # Adjust the number of lines per page as needed
 
         # Reverse the order of lines to show the most recent entries first
         log_content.reverse()
+
+        # Calculate the total number of pages
+        total_pages = (len(log_content) + lines_per_page - 1) // lines_per_page
 
         # Calculate the start and end indices for the current page
         start_index = (page_number - 1) * lines_per_page
@@ -121,12 +124,20 @@ def display_log():
 
         # Add navigation buttons
         prev_page = max(1, page_number - 1)
-        next_page = page_number + 1
+        next_page = min(total_pages, page_number + 1)
+
+        first_page = 1
+        last_page = total_pages
+
+        nearest_pages = [max(1, page_number - i) for i in range(5, 0, -1)] + [min(total_pages, page_number + i) for i in range(1, 6)]
 
         navigation_buttons = f"""
         <div>
+            <a href="?page={first_page}">First</a> | 
             <a href="?page={prev_page}">Previous</a> | 
-            <a href="?page={next_page}">Next</a>
+            {' | '.join(f'<a href="?page={page}">{page}</a>' for page in nearest_pages)} |
+            <a href="?page={next_page}">Next</a> | 
+            <a href="?page={last_page}">Last</a>
         </div>
         """
 
