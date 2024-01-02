@@ -5,6 +5,7 @@ import time
 from datetime import timedelta, datetime
 from pushbullet import Pushbullet
 import configparser
+import timeago
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -95,6 +96,13 @@ def send_pushbullet_not(title, body):
     logging.warning(f'Send via Pushbullet. "{title} {body}"')
 
 
+def parse_log_entry(log_entry):
+    timestamp_str, message = log_entry.split(" - ", 1)
+    timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+    time_passed = timeago.format(timestamp, datetime.now())
+    return f"{timestamp_str} - {message.strip()} - {time_passed}"
+
+
 @app.route('/')
 def display_log():
     # Read and display the content of the status log
@@ -116,8 +124,8 @@ def display_log():
         start_index = (page_number - 1) * lines_per_page
         end_index = start_index + lines_per_page
 
-        # Extract the lines for the current page
-        current_page = log_content[start_index:end_index]
+        # Extract the lines for the current page and parse them
+        current_page = [parse_log_entry(entry) for entry in log_content[start_index:end_index]]
 
         # Build the HTML response with basic styling
         response_html = """
