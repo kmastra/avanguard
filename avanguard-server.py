@@ -100,8 +100,23 @@ def display_log():
     # Read and display the content of the status log
     try:
         with open('status_log.txt', 'r') as log_file:
-            log_content = log_file.read().replace('\n', '<br>')
-        return f"<html><body>{log_content}</body></html>"
+            log_content = log_file.readlines()
+
+        # Get the page number from the request or default to 1
+        page_number = int(request.args.get('page', 1))
+        lines_per_page = 20  # Adjust the number of lines per page as needed
+
+        # Calculate the start and end indices for the current page
+        start_index = (page_number - 1) * lines_per_page
+        end_index = start_index + lines_per_page
+
+        # Extract the lines for the current page
+        current_page = log_content[start_index:end_index]
+
+        # Build the HTML response
+        response_html = "<br>".join(current_page)
+
+        return response_html
     except FileNotFoundError:
         return 'Status log not found'
 
