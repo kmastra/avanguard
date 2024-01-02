@@ -106,6 +106,9 @@ def display_log():
         page_number = int(request.args.get('page', 1))
         lines_per_page = 20  # Adjust the number of lines per page as needed
 
+        # Reverse the order of lines to show the most recent entries first
+        log_content.reverse()
+
         # Calculate the start and end indices for the current page
         start_index = (page_number - 1) * lines_per_page
         end_index = start_index + lines_per_page
@@ -115,6 +118,19 @@ def display_log():
 
         # Build the HTML response
         response_html = "<br>".join(current_page)
+
+        # Add navigation buttons
+        prev_page = max(1, page_number - 1)
+        next_page = page_number + 1
+
+        navigation_buttons = f"""
+        <div>
+            <a href="?page={prev_page}">Previous</a> | 
+            <a href="?page={next_page}">Next</a>
+        </div>
+        """
+
+        response_html = navigation_buttons + response_html
 
         return response_html
     except FileNotFoundError:
