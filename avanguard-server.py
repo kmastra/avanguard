@@ -141,9 +141,6 @@ def display_log():
 
         response_html += "<h1>Status Log</h1>"
 
-        for entry in current_page:
-            response_html += f"<div class='log-entry'>{entry}</div>"
-
         # Add navigation buttons
         prev_page = max(1, page_number - 1)
         next_page = min(total_pages, page_number + 1)
@@ -164,6 +161,9 @@ def display_log():
         """
 
         response_html += navigation_buttons
+
+        for entry in current_page:
+            response_html += f"<div class='log-entry'>{entry}</div>"
 
         response_html += """
         </body>
