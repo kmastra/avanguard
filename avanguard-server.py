@@ -104,7 +104,7 @@ def display_log():
 
         # Get the page number from the request or default to 1
         page_number = int(request.args.get('page', 1))
-        lines_per_page = 2000  # Adjust the number of lines per page as needed
+        lines_per_page = 1000  # Adjust the number of lines per page as needed
 
         # Reverse the order of lines to show the most recent entries first
         log_content.reverse()
@@ -119,8 +119,30 @@ def display_log():
         # Extract the lines for the current page
         current_page = log_content[start_index:end_index]
 
-        # Build the HTML response
-        response_html = "<br>".join(current_page)
+        # Build the HTML response with basic styling
+        response_html = """
+        <html>
+        <head>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 20px;
+                }
+                .log-entry {
+                    margin-bottom: 8px;
+                }
+                .navigation {
+                    margin-top: 20px;
+                }
+            </style>
+        </head>
+        <body>
+        """
+
+        response_html += "<h1>Status Log</h1>"
+
+        for entry in current_page:
+            response_html += f"<div class='log-entry'>{entry}</div>"
 
         # Add navigation buttons
         prev_page = max(1, page_number - 1)
@@ -132,16 +154,21 @@ def display_log():
         nearest_pages = [max(1, page_number - i) for i in range(5, 0, -1)] + [min(total_pages, page_number + i) for i in range(1, 6)]
 
         navigation_buttons = f"""
-        <div>
-            <a href="?page={first_page}">First</a> | 
-            <a href="?page={prev_page}">Previous</a> | 
-            {' | '.join(f'<a href="?page={page}">{page}</a>' for page in nearest_pages)} |
-            <a href="?page={next_page}">Next</a> | 
-            <a href="?page={last_page}">Last</a>
-        </div>
+            <div class='navigation'>
+                <a href="?page={first_page}">First</a> | 
+                <a href="?page={prev_page}">Previous</a> | 
+                {' | '.join(f'<a href="?page={page}">{page}</a>' for page in nearest_pages)} |
+                <a href="?page={next_page}">Next</a> | 
+                <a href="?page={last_page}">Last</a>
+            </div>
         """
 
-        response_html = navigation_buttons + response_html
+        response_html += navigation_buttons
+
+        response_html += """
+        </body>
+        </html>
+        """
 
         return response_html
     except FileNotFoundError:
