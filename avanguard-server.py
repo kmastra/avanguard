@@ -95,7 +95,7 @@ def send_pushbullet_not(title, body):
     logging.warning(f'Send via Pushbullet. "{title} {body}"')
 
 
-@app.route('/')
+@app.route('/avanguard')
 def display_log():
     # Read and display the content of the status log
     try:
