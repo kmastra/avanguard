@@ -2,9 +2,12 @@ from flask import Flask, request, jsonify
 import logging
 import threading
 import time
+import asyncio
 from datetime import timedelta, datetime
 from pushbullet import Pushbullet
 import configparser
+from telegram import Update, Bot
+from telegram.ext import Application, CommandHandler, ContextTypes
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -18,6 +21,7 @@ logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asc
 
 # Initialize variables for heartbeat and offline detection
 heartbeat_lock = threading.Lock()
+telegram_lock = threading.Lock()
 last_heartbeat_time = time.time()
 offline_threshold = int(config['Server']['offline_threshold'])
 offline = False
@@ -25,7 +29,12 @@ failed_heartbeat_time = time.time()
 
 # Pushbullet Api Key
 pushbullet_api_key = config['Server']['pushbullet_api_key']
+telegram_bot_token = config['Server']['telegram_bot_token']
+telegram_id = config['Server']['telegram_id_to_notify']
 
+# Variables for snooze
+snooze_start_time = None
+snooze_duration = 0
 
 @app.route('/heartbeat', methods=['GET'])
 def heartbeat():
@@ -52,12 +61,14 @@ def heartbeat():
                 title = "Hawkeye is up!"
                 body = f"Possible short power outage. Time taken {downtime}."
                 send_pushbullet_not(title, body)
+                send_telegram_not(f'{title} {body}')
             else:
                 # Log and notify for normal downtime
                 logging.info(f"Hawkeye back up after {downtime}.")
                 title = "Hawkeye is up!"
                 body = f"Hawkeye back online after {downtime}."
                 send_pushbullet_not(title, body)
+                send_telegram_not(f'{title} {body}')
 
         return 'OK', 200
     else:
@@ -68,7 +79,7 @@ def heartbeat():
 def check_heartbeat():
     global offline, failed_heartbeat_time
     while True:
-        time.sleep(60)  # Check every minute
+        time.sleep(60)
         with heartbeat_lock:
             elapsed_time = time.time() - last_heartbeat_time
 
@@ -77,11 +88,12 @@ def check_heartbeat():
                 failed_heartbeat_time = last_heartbeat_time
                 downtime = str(timedelta(seconds=elapsed_time)).split(".")[0]
 
-                # Perform the action for an offline client
                 logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
-                title = "Hawkeye is down!"
-                body = f"Downtime: {downtime}"
-                send_pushbullet_not(title, body)
+                if should_send_notification:
+                    title = "Hawkeye is down!"
+                    body = f"Downtime: {downtime}"
+                    send_pushbullet_not(title, body)
+                    send_telegram_not(f'{title} {body}')
 
 
 # Start the background thread to check for heartbeat
@@ -93,6 +105,48 @@ def send_pushbullet_not(title, body):
     pb = Pushbullet(pushbullet_api_key)
     pb.push_note(title, body)
     logging.warning(f'Send via Pushbullet. "{title} {body}"')
+
+
+async def send_telegram_not(text):
+    bot = Bot(telegram_bot_token)
+    await bot.send_message(chat_id=telegram_id, text=text)
+    logging.warning(f'Send via Telegram. "{text}"')
+
+
+async def snooze(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global snooze_start_time, snooze_duration
+    
+    try:
+        duration = int(context.args[0]) if len(context.args) > 0 else None
+        if duration is None or not (5 <= duration <= 36000):
+            raise ValueError("Invalid duration")
+        
+        snooze_start_time = int(time.time())
+        snooze_duration = duration
+        await update.message.reply_text(f"Notifications snoozed for {duration} seconds.")
+
+    except (IndexError, ValueError):
+        await update.message.reply_text("Usage: /snooze <seconds> (between 5 and 36000)")
+
+
+def should_send_notification():
+    if snooze_start_time is not None:
+        elapsed_time = int(time.time()) - snooze_start_time
+        if elapsed_time < snooze_duration:
+            return False
+    return True
+
+
+def start_telegram_bot():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    application = Application.builder().token(telegram_bot_token).build()
+    application.add_handler(CommandHandler("snooze", snooze))
+    application.run_polling()
+
+
+telegram_thread = threading.Thread(target=start_telegram_bot)
+telegram_thread.start()
 
 
 @app.route('/avanguard')

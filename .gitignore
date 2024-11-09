@@ -1,0 +1,6 @@
+config.ini
+__pycache__/
+venv/
+.idea/
+test.py
+status_log.txt
