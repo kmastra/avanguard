@@ -1,13 +1,16 @@
-import requests
+import socket
+import hmac
+import hashlib
 import time
-import uuid
+import configparser
 import argparse
 
-# Server URL to send heartbeat to
-serverurl = "http://161.97.65.201:5000/heartbeat"
+config = configparser.ConfigParser()
+config.read('config.ini')
 
-# Generate a unique client ID using UUID
-client_id = str(uuid.uuid4())
+server_ip = config['Client']['server_ip']
+server_port = config['Client']['server_port']
+secret_key = config['Key']['secret_key']
 
 
 def main():
@@ -17,21 +20,33 @@ def main():
     send_heartbeat(args.interval)
 
 
+def create_heartbeat():
+    timestamp = str(time.time())
+    message = f'heartbeat:{timestamp}'.encode()
+
+    generated_hmac = hmac.new(secret_key, message, hashlib.sha256).hexdigest()
+
+    full_message = f'heartbeat:{timestamp}:{generated_hmac}'
+    return full_message.encode()
+
+
 def send_heartbeat(interval):
     while True:
         try:
-            response = requests.get(serverurl, headers={"Client-ID": client_id})
-
-            if response.status_code == 200:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+                client_socket.connect((server_ip, server_port))
+                heartbeat_message = create_heartbeat()
+                client_socket.sendall(heartbeat_message)
                 print("Heartbeat sent successfully.")
-            else:
-                print("Failed to send heartbeat.")
-        except requests.RequestException as e:
-            print(f"Error sending heartbeat: {e}")
+        except ConnectionRefusedError:
+            print("Connection refused by the server. Retrying...")
+        except socket.timeout:
+            print("Connection timed out. Retrying...")
+        except socket.error as e:
+            print(f"Socket error: {e}. Retrying...")
 
         time.sleep(interval)
 
 
-# Entry point of the script
 if __name__ == "__main__":
     main()

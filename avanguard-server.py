@@ -1,4 +1,6 @@
-from flask import Flask, request, jsonify
+import socket
+import hmac
+import hashlib
 import logging
 import threading
 import time
@@ -9,71 +11,103 @@ import configparser
 from telegram import Update, Bot
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# Initialize Flask app
-app = Flask(__name__)
-
-# Read configuration from config.ini
 config = configparser.ConfigParser()
 config.read('config.ini')
-
-# Configure logging
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
-# Initialize variables for heartbeat and offline detection
+
 heartbeat_lock = threading.Lock()
 telegram_lock = threading.Lock()
+tcp_server_lock = threading.Lock()
 last_heartbeat_time = time.time()
 offline_threshold = int(config['Server']['offline_threshold'])
 offline = False
 failed_heartbeat_time = time.time()
-
-# Pushbullet Api Key
+secret_key = config['Key']['secret_key']
 pushbullet_api_key = config['Server']['pushbullet_api_key']
 telegram_bot_token = config['Server']['telegram_bot_token']
 telegram_id = config['Server']['telegram_id_to_notify']
-
-# Variables for snooze
+TIME_LIMIT = 10
 snooze_start_time = None
 snooze_duration = 0
 
-@app.route('/heartbeat', methods=['GET'])
-def heartbeat():
+
+def validate_heartbeat(data):
+    try:
+        # Split the message into components
+        _, timestamp, received_hmac = data.decode().split(":")
+        
+        # Recreate the message to validate HMAC
+        message = f'heartbeat:{timestamp}'.encode()
+        calculated_hmac = hmac.new(secret_key, message, hashlib.sha256).hexdigest()
+        
+        # Validate HMAC and timestamp
+        if hmac.compare_digest(calculated_hmac, received_hmac) and (time.time() - float(timestamp)) < TIME_LIMIT:
+            return True
+        else:
+            return False
+    except (ValueError, TypeError):
+
+        return False
+
+
+def start_server():
     global last_heartbeat_time, offline, failed_heartbeat_time
-    client_id = request.headers.get('Client-ID')
-    client_ip = request.remote_addr
 
-    if client_id:
-        # Update last heartbeat time and elapsed time
-        last_heartbeat_time = time.time()
-        elapsed_time = time.time() - last_heartbeat_time
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(('0.0.0.0', 5000))
+    server_socket.listen(1)
+    logging.info(f"Server is listening for heartbeats...")
 
-        # Log the heartbeat
-        logging.info(f"Heartbeat from Client ID: {client_id} , with IP: {client_ip}")
+    while True:
+        with tcp_server_lock:
+            try:
+                client_socket, address = server_socket.accept()
+                logging.warning(f"Connection from {address} received")
 
-        if elapsed_time <= offline_threshold and offline:
-            offline = False
-            temp_time = time.time() - failed_heartbeat_time
-            downtime = str(timedelta(seconds=temp_time)).split(".")[0]
+                data = client_socket.recv(1024)
+                if data:
+                    if validate_heartbeat(data):
+                        logging.info("Valid heartbeat received")
 
-            if temp_time < 300:
-                # Log and notify for a short power outage
-                logging.info(f"Hawkeye back up after {downtime}. Possible short power outage.")
-                title = "Hawkeye is up!"
-                body = f"Possible short power outage. Time taken {downtime}."
-                send_pushbullet_not(title, body)
-                send_telegram_not(f'{title} {body}')
-            else:
-                # Log and notify for normal downtime
-                logging.info(f"Hawkeye back up after {downtime}.")
-                title = "Hawkeye is up!"
-                body = f"Hawkeye back online after {downtime}."
-                send_pushbullet_not(title, body)
-                send_telegram_not(f'{title} {body}')
+                        # Update last heartbeat time and elapsed time
+                        last_heartbeat_time = time.time()
+                        elapsed_time = time.time() - last_heartbeat_time
 
-        return 'OK', 200
-    else:
-        # Handle regular GET requests
-        return jsonify({'error': 'Invalid request'}), 400
+                        # Log the heartbeat
+                        logging.info(f"Heartbeat from IP: {address}")
+
+                        if elapsed_time <= offline_threshold and offline:
+                            offline = False
+                            temp_time = time.time() - failed_heartbeat_time
+                            downtime = str(timedelta(seconds=temp_time)).split(".")[0]
+
+                            if temp_time < 300:
+                                # Log and notify for a short power outage
+                                logging.info(f"Hawkeye back up after {downtime}. Possible short power outage.")
+                                title = "Hawkeye is up!"
+                                body = f"Possible short power outage. Time taken {downtime}."
+                                send_pushbullet_not(title, body)
+                                send_telegram_not(f'{title} {body}')
+                            else:
+                                # Log and notify for normal downtime
+                                logging.info(f"Hawkeye back up after {downtime}.")
+                                title = "Hawkeye is up!"
+                                body = f"Hawkeye back online after {downtime}."
+                                send_pushbullet_not(title, body)
+                                send_telegram_not(f'{title} {body}')
+                    else:
+                        logging.warning("Invalid or outdated heartbeat received")
+
+            except socket.error as e:
+                logging.error(f"Socket error: {e}")
+            finally:
+                if client_socket:
+                    client_socket.close()
+
+
+tcp_server_thread = threading.Thread(target=start_server)
+tcp_server_thread.start()
 
 
 def check_heartbeat():
@@ -96,7 +130,6 @@ def check_heartbeat():
                     send_telegram_not(f'{title} {body}')
 
 
-# Start the background thread to check for heartbeat
 heartbeat_thread = threading.Thread(target=check_heartbeat)
 heartbeat_thread.start()
 
@@ -149,87 +182,5 @@ telegram_thread = threading.Thread(target=start_telegram_bot)
 telegram_thread.start()
 
 
-@app.route('/avanguard')
-def display_log():
-    # Read and display the content of the status log
-    try:
-        with open('status_log.txt', 'r') as log_file:
-            log_content = log_file.readlines()
-
-        # Get the page number from the request or default to 1
-        page_number = int(request.args.get('page', 1))
-        lines_per_page = 1000  # Adjust the number of lines per page as needed
-
-        # Reverse the order of lines to show the most recent entries first
-        log_content.reverse()
-
-        # Calculate the total number of pages
-        total_pages = (len(log_content) + lines_per_page - 1) // lines_per_page
-
-        # Calculate the start and end indices for the current page
-        start_index = (page_number - 1) * lines_per_page
-        end_index = start_index + lines_per_page
-
-        # Extract the lines for the current page
-        current_page = log_content[start_index:end_index]
-
-        # Build the HTML response with basic styling
-        response_html = """
-        <html>
-        <head>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    margin: 20px;
-                }
-                .log-entry {
-                    margin-bottom: 8px;
-                }
-                .navigation {
-                    margin-top: 20px;
-                }
-            </style>
-        </head>
-        <body>
-        """
-
-        response_html += "<h1>Status Log</h1>"
-
-        # Add navigation buttons
-        prev_page = max(1, page_number - 1)
-        next_page = min(total_pages, page_number + 1)
-
-        first_page = 1
-        last_page = total_pages
-
-        nearest_pages = [max(1, page_number - i) for i in range(5, 0, -1)] + [min(total_pages, page_number + i) for i in range(1, 6)]
-
-        navigation_buttons = f"""
-            <div class='navigation'>
-                <a href="?page={first_page}">First</a> | 
-                <a href="?page={prev_page}">Previous</a> | 
-                {' | '.join(f'<a href="?page={page}">{page}</a>' for page in nearest_pages)} |
-                <a href="?page={next_page}">Next</a> | 
-                <a href="?page={last_page}">Last</a>
-            </div>
-        """
-
-        response_html += navigation_buttons
-
-        for entry in current_page:
-            response_html += f"<div class='log-entry'>{entry}</div>"
-
-        response_html += """
-        </body>
-        </html>
-        """
-
-        return response_html
-    except FileNotFoundError:
-        return 'Status log not found'
-
-
-if __name__ == '__main__':
-    # Log the start of the script
-    logging.info(f"Script started at {datetime.now()}")
-    app.run(host='0.0.0.0', port=5000)
+#if __name__ == '__main__':
+    
