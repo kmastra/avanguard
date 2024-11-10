@@ -88,14 +88,14 @@ def start_server():
                                 title = "Hawkeye is up!"
                                 body = f"Possible short power outage. Time taken {downtime}."
                                 send_pushbullet_not(title, body)
-                                #send_telegram_not(f'{title} {body}')
+                                send_telegram_not(f'{title} {body}')
                             else:
                                 # Log and notify for normal downtime
                                 logging.info(f"Hawkeye back up after {downtime}.")
                                 title = "Hawkeye is up!"
                                 body = f"Hawkeye back online after {downtime}."
                                 send_pushbullet_not(title, body)
-                                #send_telegram_not(f'{title} {body}')
+                                send_telegram_not(f'{title} {body}')
                     else:
                         logging.warning("Invalid or outdated heartbeat received")
 
@@ -123,11 +123,11 @@ def check_heartbeat():
                 downtime = str(timedelta(seconds=elapsed_time)).split(".")[0]
 
                 logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
-                if should_send_notification:
+                if should_send_notification():
                     title = "Hawkeye is down!"
                     body = f"Downtime: {downtime}"
                     send_pushbullet_not(title, body)
-                    #send_telegram_not(f'{title} {body}')
+                    send_telegram_not(f'{title} {body}')
 
 
 heartbeat_thread = threading.Thread(target=check_heartbeat)
@@ -163,6 +163,7 @@ async def snooze(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def should_send_notification():
+    global snooze_start_time, snooze_duration
     if snooze_start_time is not None:
         elapsed_time = int(time.time()) - snooze_start_time
         if elapsed_time < snooze_duration:
