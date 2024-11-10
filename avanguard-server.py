@@ -13,6 +13,8 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 logging.getLogger('telegram').setLevel(logging.WARNING)
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
 last_heartbeat_time = time.time()
 offline_threshold = int(config['Server']['offline_threshold'])
 offline = False
