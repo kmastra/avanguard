@@ -140,9 +140,9 @@ def send_pushbullet_not(title, body):
     logging.warning(f'Send via Pushbullet. "{title} {body}"')
 
 
-async def send_telegram_not(text):
+def send_telegram_not(text):
     bot = Bot(telegram_bot_token)
-    await bot.send_message(chat_id=telegram_id, text=text)
+    bot.send_message(chat_id=telegram_id, text=text)
     logging.warning(f'Send via Telegram. "{text}"')
 
 
