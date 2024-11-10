@@ -2,7 +2,6 @@ import socket
 import hmac
 import hashlib
 import logging
-import threading
 import time
 import asyncio
 from datetime import timedelta, datetime
@@ -15,10 +14,6 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
 
-
-heartbeat_lock = threading.Lock()
-telegram_lock = threading.Lock()
-tcp_server_lock = threading.Lock()
 last_heartbeat_time = time.time()
 offline_threshold = int(config['Server']['offline_threshold'])
 offline = False
@@ -68,77 +63,59 @@ def validate_heartbeat(data):
     return False
 
 
-def start_server():
-    global last_heartbeat_time, offline, failed_heartbeat_time
-
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('0.0.0.0', 5000))
-    server_socket.listen(1)
+async def start_server():
+    server = await asyncio.start_server(handle_client, '0.0.0.0', 5000)
     logging.info(f"Server is listening for heartbeats...")
 
-    while True:
-        with tcp_server_lock:
-            try:
-                client_socket, address = server_socket.accept()
-                logging.warning(f"Connection from {address}.")
-
-                data = client_socket.recv(1024)
-                if data:
-                    if validate_heartbeat(data):
-                        logging.info("Valid heartbeat received.")
-
-                        # Update last heartbeat time and elapsed time
-                        elapsed_time = time.time() - last_heartbeat_time
-                        last_heartbeat_time = time.time()
-                        
-                        # Log the heartbeat
-                        logging.info(f"Heartbeat from IP: {address}.")
-
-                        if elapsed_time >= offline_threshold and offline:
-                            offline = False
-                            temp_time = time.time() - failed_heartbeat_time
-                            downtime = str(timedelta(seconds=temp_time)).split(".")[0]
-
-                            if temp_time < 300:
-                                # Log and notify for a short power outage
-                                logging.info(f"Hawkeye back up after {downtime}. Possible short power outage.")
-                                send_notification("Hawkeye is up!", f"Possible short power outage. Time taken {downtime}.")
-                            else:
-                                # Log and notify for normal outage
-                                logging.info(f"Hawkeye back up after {downtime}.")
-                                send_notification("Hawkeye is up!", f"Hawkeye back online after {downtime}.")
-                    else:
-                        logging.warning("Invalid or outdated heartbeat received")
-
-            except socket.error as e:
-                logging.error(f"Socket error: {e}")
-            finally:
-                if client_socket:
-                    client_socket.close()
+    async with server:
+        await server.serve_forever()
 
 
-tcp_server_thread = threading.Thread(target=start_server)
-tcp_server_thread.start()
+async def handle_client(reader, writer):
+    global last_heartbeat_time, offline, failed_heartbeat_time
+
+    address = writer.get_extra_info('peername')
+    logging.warning(f"Connection from {address}.")
+    
+    data = await reader.read(1024)
+    if data and await validate_heartbeat(data):
+        logging.info("Valid heartbeat received from IP: {address}")
+
+        # Update last heartbeat time and check elapsed time
+        elapsed_time = time.time() - last_heartbeat_time
+        last_heartbeat_time = time.time()
+
+        if elapsed_time >= offline_threshold and offline:
+            offline = False
+            temp_time = time.time() - failed_heartbeat_time
+            downtime = str(timedelta(seconds=temp_time)).split(".")[0]
+
+            if temp_time < 300:
+                # Log and notify for a short power outage
+                logging.info(f"Hawkeye back up after {downtime}. Possible short power outage.")
+                send_notification("Hawkeye is up!", f"Possible short power outage. Time taken {downtime}.")
+            else:
+                # Log and notify for normal outage
+                logging.info(f"Hawkeye back up after {downtime}.")
+                send_notification("Hawkeye is up!", f"Hawkeye back online after {downtime}.")
+
+    writer.close()
+    await writer.wait_closed()
 
 
-def check_heartbeat():
+async def check_heartbeat():
     global offline, failed_heartbeat_time
     while True:
-        time.sleep(60)
-        with heartbeat_lock:
-            elapsed_time = time.time() - last_heartbeat_time
+        await asyncio.sleep(60)
+        elapsed_time = time.time() - last_heartbeat_time
 
-            if elapsed_time > offline_threshold:
-                offline = True
-                failed_heartbeat_time = last_heartbeat_time
-                downtime = str(timedelta(seconds=elapsed_time)).split(".")[0]
+        if elapsed_time > offline_threshold:
+            offline = True
+            failed_heartbeat_time = last_heartbeat_time
+            downtime = str(timedelta(seconds=elapsed_time)).split(".")[0]
 
-                logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
-                send_notification("Hawkeye is down!", f"Downtime: {downtime}")
-
-
-heartbeat_thread = threading.Thread(target=check_heartbeat)
-heartbeat_thread.start()
+            logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
+            send_notification("Hawkeye is down!", f"Downtime: {downtime}")
 
 
 def send_pushbullet_not(title, body):
@@ -258,22 +235,29 @@ def should_send_notification():
     return True
 
 
-def start_telegram_bot():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+async  def start_telegram_bot():
     application = Application.builder().token(telegram_bot_token).build()
     application.add_handler(CommandHandler("help", telegram_show_help))
     application.add_handler(CommandHandler("snooze", telegram_snooze))
     application.add_handler(CommandHandler("status", telegram_check_status))
     application.add_handler(CommandHandler("set_threshold", telegram_set_offile_threshold))
     application.add_handler(CommandHandler("view_logs", telegram_view_logs))
-    application.run_polling()
 
-    asyncio.run(run())
+    logging.info("Starting Telegram bot...")
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling()
 
-def main():
-    start_telegram_bot()
+    try:
+        while True:
+            await asyncio.sleep(3600)
+    except asyncio.CancelledError:
+        logging.info("Stopping Telegram bot...")
+        await application.stop()
+
+async def main():
+    await asyncio.gather(start_server(), check_heartbeat(), start_telegram_bot())
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
     
