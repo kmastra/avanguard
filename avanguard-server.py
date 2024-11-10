@@ -88,14 +88,14 @@ def start_server():
                                 title = "Hawkeye is up!"
                                 body = f"Possible short power outage. Time taken {downtime}."
                                 send_pushbullet_not(title, body)
-                                send_telegram_not(f'{title} {body}')
+                                #send_telegram_not(f'{title} {body}')
                             else:
                                 # Log and notify for normal downtime
                                 logging.info(f"Hawkeye back up after {downtime}.")
                                 title = "Hawkeye is up!"
                                 body = f"Hawkeye back online after {downtime}."
                                 send_pushbullet_not(title, body)
-                                send_telegram_not(f'{title} {body}')
+                                #send_telegram_not(f'{title} {body}')
                     else:
                         logging.warning("Invalid or outdated heartbeat received")
 
@@ -127,7 +127,7 @@ def check_heartbeat():
                     title = "Hawkeye is down!"
                     body = f"Downtime: {downtime}"
                     send_pushbullet_not(title, body)
-                    send_telegram_not(f'{title} {body}')
+                    #send_telegram_not(f'{title} {body}')
 
 
 heartbeat_thread = threading.Thread(target=check_heartbeat)
@@ -140,10 +140,10 @@ def send_pushbullet_not(title, body):
     logging.warning(f'Send via Pushbullet. "{title} {body}"')
 
 
-async def send_telegram_not(text):
+'''async def send_telegram_not(text):
     bot = Bot(telegram_bot_token)
     await bot.send_message(chat_id=telegram_id, text=text)
-    logging.warning(f'Send via Telegram. "{text}"')
+    logging.warning(f'Send via Telegram. "{text}"')'''
 
 
 async def snooze(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -170,16 +170,21 @@ def should_send_notification():
     return True
 
 
-def start_telegram_bot():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+'''def start_telegram_bot():
     application = Application.builder().token(telegram_bot_token).build()
     application.add_handler(CommandHandler("snooze", snooze))
-    application.run_polling()
+
+    async def run():
+        await application.initialize()
+        await application.start()
+        await application.updater.start_polling()
+        await application.idle()
+
+    asyncio.run(run())
 
 
 telegram_thread = threading.Thread(target=start_telegram_bot)
-telegram_thread.start()
+telegram_thread.start()'''
 
 
 #if __name__ == '__main__':
