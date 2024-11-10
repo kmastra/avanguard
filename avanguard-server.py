@@ -184,19 +184,19 @@ async def telegram_snooze(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def telegram_view_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        lines = int(context.args[0]) if len(context.args) > 0 else None
-        if lines is None or not (0 <= lines <= 50):
+        lines = int(context.args[0]) if len(context.args) > 0 else 10
+        if not (0 <= lines <= 50):
             raise ValueError("Invalid lines count")
         
         with open('status_log.txt', 'r') as log_file:
-            # Reading last 10 lines from log for recent activity
             lines = log_file.readlines()[-lines:]
             log_text = ''.join(lines)
+            
         await update.message.reply_text(f"Recent logs:\n{log_text}")
     except FileNotFoundError:
         await update.message.reply_text("Log file not found.")
     except (IndexError, ValueError):
-        await update.message.replay_text("Usage: /view_logs <seconds> (between 0 and 50).")
+        await update.message.reply_text("Usage: /view_logs <seconds> (between 0 and 50).")
 
 
 async def telegram_set_offile_threshold(update: Update, context: ContextTypes.DEFAULT_TYPE):
