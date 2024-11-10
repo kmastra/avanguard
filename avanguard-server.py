@@ -1,10 +1,9 @@
-import socket
 import hmac
 import hashlib
 import logging
 import time
 import asyncio
-from datetime import timedelta, datetime
+from datetime import timedelta
 from pushbullet import Pushbullet
 import configparser
 from telegram import Update, Bot
@@ -13,7 +12,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 config = configparser.ConfigParser()
 config.read('config.ini')
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
-
+logging.getLogger('telegram').setLevel(logging.WARNING)
 last_heartbeat_time = time.time()
 offline_threshold = int(config['Server']['offline_threshold'])
 offline = False
@@ -28,11 +27,11 @@ snooze_start_time = None
 snooze_duration = 0
 
 
-def send_notification(title, body):
+async def send_notification(title, body):
     if should_send_notification():
         if enable_pushbullet:
             send_pushbullet_not(title, body)
-        asyncio.run(send_telegram_not(f'{title} {body}'))
+        await send_telegram_not(f'{title} {body}')
         logging.warning(f'Sent notification: "{title} {body}"')
     else:
         logging.info(f'Notification "{title} {body}" snoozed, not sent.')
@@ -65,7 +64,7 @@ def validate_heartbeat(data):
 
 async def start_server():
     server = await asyncio.start_server(handle_client, '0.0.0.0', 5000)
-    logging.info(f"Server is listening for heartbeats...")
+    logging.info(f"Server started and is listening for heartbeats...")
 
     async with server:
         await server.serve_forever()
@@ -105,6 +104,7 @@ async def handle_client(reader, writer):
 
 async def check_heartbeat():
     global offline, failed_heartbeat_time
+    logging.info(f"Heartbeat watchdog started...")
     while True:
         await asyncio.sleep(60)
         elapsed_time = time.time() - last_heartbeat_time
