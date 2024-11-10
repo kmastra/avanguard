@@ -9,8 +9,8 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 server_ip = config['Client']['server_ip']
-server_port = config['Client']['server_port']
-secret_key = config['Key']['secret_key']
+server_port = int(config['Client']['server_port'])
+secret_key = config['Key']['secret_key'].encode()
 
 
 def main():
