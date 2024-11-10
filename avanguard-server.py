@@ -24,12 +24,23 @@ offline_threshold = int(config['Server']['offline_threshold'])
 offline = False
 failed_heartbeat_time = time.time()
 secret_key = config['Key']['secret_key'].encode()
+enable_pushbullet = config['Server']['pushbullet_notification']
 pushbullet_api_key = config['Server']['pushbullet_api_key']
 telegram_bot_token = config['Server']['telegram_bot_token']
 telegram_id = config['Server']['telegram_id_to_notify']
 TIME_LIMIT = 10
 snooze_start_time = None
 snooze_duration = 0
+
+
+def send_notification(title, body):
+    if should_send_notification():
+        if enable_pushbullet:
+            send_pushbullet_not(title, body)
+        asyncio.run(send_telegram_not(f'{title} {body}'))
+        logging.warning(f'Sent notification: "{title} {body}"')
+    else:
+        logging.info(f'Notification "{title} {body}" snoozed, not sent.')
 
 
 def validate_heartbeat(data):
@@ -45,10 +56,16 @@ def validate_heartbeat(data):
         if hmac.compare_digest(calculated_hmac, received_hmac) and (time.time() - float(timestamp)) < TIME_LIMIT:
             return True
         else:
+            logging.warning(f"Failed heartbeat validation - HMAC or timestamp mismatch.")
             return False
-    except (ValueError, TypeError):
-
-        return False
+    except ValueError as ve:
+        logging.error(f"ValueError in validate_heartbeat: {ve} - Data received: {data}")
+    except TypeError as te:
+        logging.error(f"TypeError in validate_heartbeat: {te} - Data received: {data}")
+    except Exception as e:
+        logging.error(f"Unexpected error in validate_heartbeat: {e} - Data received: {data}")
+    
+    return False
 
 
 def start_server():
@@ -85,17 +102,11 @@ def start_server():
                             if temp_time < 300:
                                 # Log and notify for a short power outage
                                 logging.info(f"Hawkeye back up after {downtime}. Possible short power outage.")
-                                title = "Hawkeye is up!"
-                                body = f"Possible short power outage. Time taken {downtime}."
-                                send_pushbullet_not(title, body)
-                                asyncio.run(send_telegram_not(f'{title} {body}'))
+                                send_notification("Hawkeye is up!", f"Possible short power outage. Time taken {downtime}.")
                             else:
-                                # Log and notify for normal downtime
+                                # Log and notify for normal outage
                                 logging.info(f"Hawkeye back up after {downtime}.")
-                                title = "Hawkeye is up!"
-                                body = f"Hawkeye back online after {downtime}."
-                                send_pushbullet_not(title, body)
-                                asyncio.run(send_telegram_not(f'{title} {body}'))
+                                send_notification("Hawkeye is up!", f"Hawkeye back online after {downtime}.")
                     else:
                         logging.warning("Invalid or outdated heartbeat received")
 
@@ -123,11 +134,7 @@ def check_heartbeat():
                 downtime = str(timedelta(seconds=elapsed_time)).split(".")[0]
 
                 logging.warning(f"More than {offline_threshold} seconds passed since last heartbeat.")
-                if should_send_notification():
-                    title = "Hawkeye is down!"
-                    body = f"Downtime: {downtime}"
-                    send_pushbullet_not(title, body)
-                    asyncio.run(send_telegram_not(f'{title} {body}'))
+                send_notification("Hawkeye is down!", f"Downtime: {downtime}")
 
 
 heartbeat_thread = threading.Thread(target=check_heartbeat)
