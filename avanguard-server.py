@@ -127,7 +127,7 @@ def check_heartbeat():
                     title = "Hawkeye is down!"
                     body = f"Downtime: {downtime}"
                     send_pushbullet_not(title, body)
-                    send_telegram_not(f'{title} {body}')
+                    asyncio.run(send_telegram_not(f'{title} {body}'))
 
 
 heartbeat_thread = threading.Thread(target=check_heartbeat)
@@ -140,10 +140,13 @@ def send_pushbullet_not(title, body):
     logging.warning(f'Send via Pushbullet. "{title} {body}"')
 
 
-def send_telegram_not(text):
+async def send_telegram_not(text):
     bot = Bot(telegram_bot_token)
-    bot.send_message(chat_id=telegram_id, text=text)
-    logging.warning(f'Send via Telegram. "{text}"')
+    try:
+        await bot.send_message(chat_id=telegram_id, text=text)
+        logging.warning(f'Send via Telegram. "{text}"')
+    except Exception as e:
+        logging.error(f"Failed to send Telegram notification: {e}")
 
 
 async def snooze(update: Update, context: ContextTypes.DEFAULT_TYPE):
