@@ -168,15 +168,17 @@ async def telegram_snooze(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Check if a snooze is already active and if it is extent it
         current_time = int(time.time())
-        elapsed_time = current_time - snooze_start_time
-        if elapsed_time < snooze_duration:
-            snooze_start_time = current_time
-            snooze_duration = snooze_duration - elapsed_time + duration
-            await update.message.reply_text(f"Snooze already active extenting snooze for {duration} seconds. Total {snooze_duration} seconds.")
-        else:
+        if snooze_start_time is None or (current_time - snooze_start_time) >= snooze_duration:
             snooze_start_time = current_time
             snooze_duration = duration
             await update.message.reply_text(f"Notifications snoozed for {duration} seconds.")
+        else:
+            elapsed_time = current_time - snooze_start_time
+            snooze_duration = snooze_duration - elapsed_time + duration
+            snooze_start_time = current_time  # Reset start time to now
+            await update.message.reply_text(
+                f"Snooze already active. Extending snooze by {duration} seconds. Total snooze time is now {snooze_duration} seconds."
+            )
 
     except (IndexError, ValueError):
         await update.message.reply_text("Usage: /snooze <seconds> (between 5 and 36000).")
