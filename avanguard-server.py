@@ -63,19 +63,19 @@ def start_server():
         with tcp_server_lock:
             try:
                 client_socket, address = server_socket.accept()
-                logging.warning(f"Connection from {address} received")
+                logging.warning(f"Connection from {address}.")
 
                 data = client_socket.recv(1024)
                 if data:
                     if validate_heartbeat(data):
-                        logging.info("Valid heartbeat received")
+                        logging.info("Valid heartbeat received.")
 
                         # Update last heartbeat time and elapsed time
-                        last_heartbeat_time = time.time()
                         elapsed_time = time.time() - last_heartbeat_time
-
+                        last_heartbeat_time = time.time()
+                        
                         # Log the heartbeat
-                        logging.info(f"Heartbeat from IP: {address}")
+                        logging.info(f"Heartbeat from IP: {address}.")
 
                         if elapsed_time <= offline_threshold and offline:
                             offline = False
@@ -140,10 +140,10 @@ def send_pushbullet_not(title, body):
     logging.warning(f'Send via Pushbullet. "{title} {body}"')
 
 
-'''async def send_telegram_not(text):
+async def send_telegram_not(text):
     bot = Bot(telegram_bot_token)
     await bot.send_message(chat_id=telegram_id, text=text)
-    logging.warning(f'Send via Telegram. "{text}"')'''
+    logging.warning(f'Send via Telegram. "{text}"')
 
 
 async def snooze(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -170,22 +170,18 @@ def should_send_notification():
     return True
 
 
-'''def start_telegram_bot():
+def start_telegram_bot():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     application = Application.builder().token(telegram_bot_token).build()
     application.add_handler(CommandHandler("snooze", snooze))
-
-    async def run():
-        await application.initialize()
-        await application.start()
-        await application.updater.start_polling()
-        await application.idle()
+    application.run_polling()
 
     asyncio.run(run())
 
+def main():
+    start_telegram_bot()
 
-telegram_thread = threading.Thread(target=start_telegram_bot)
-telegram_thread.start()'''
-
-
-#if __name__ == '__main__':
+if __name__ == '__main__':
+    main()
     
