@@ -150,17 +150,35 @@ async def send_telegram_not(text):
 
 
 async def telegram_check_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global last_heartbeat_time, offline
-    elapsed_time = time.time() - last_heartbeat_time
-    downtime = str(timedelta(seconds=elapsed_time)).split(".")[0]
-    status = "online" if not offline else "offline"
-    await update.message.reply_text(f"Hawkeye is currently {status}.\nLast heartbeat was {downtime} seconds ago.")
+    global last_heartbeat_time, offline, snooze_start_time, snooze_duration
+
+    if last_heartbeat_time is None:
+        await update.message.reply_text("No heartbeat has been received yet.")
+
+    else:
+        current_time = int(time.time())
+        elapsed_time = current_time - last_heartbeat_time
+        downtime = str(timedelta(seconds=elapsed_time)).split(".")[0]
+        status = "online" if not offline else "offline"
+
+        await update.message.reply_text(f"Hawkeye is currently {status}.\nLast heartbeat was {downtime} seconds ago.")
+
+        if snooze_start_time is not None:
+            snooze_elapsed_time = current_time - snooze_start_time
+            if snooze_elapsed_time < snooze_duration:
+                await update.message.reply_text(f"Notifications are currently snoozed for {snooze_duration - snooze_elapsed_time} seconds more.")        
 
 
 async def telegram_snooze(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global snooze_start_time, snooze_duration
     
     try:
+        if len(context.args) > 0 and context.args[0].lower() == "disable":
+            snooze_start_time = None
+            snooze_duration = 0
+            await update.message.reply_text("Snooze has been disabled. Notifications will resume.")
+            return
+        
         # Parse duration from the command arguments
         duration = int(context.args[0]) if len(context.args) > 0 else None
         if duration is None or not (5 <= duration <= 36000):
@@ -181,7 +199,7 @@ async def telegram_snooze(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
     except (IndexError, ValueError):
-        await update.message.reply_text("Usage: /snooze <seconds> (between 5 and 36000).")
+        await update.message.reply_text("Usage: /snooze <seconds> (between 5 and 36000) or /snooze disable.")
 
 
 async def telegram_view_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
