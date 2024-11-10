@@ -77,7 +77,7 @@ def start_server():
                         # Log the heartbeat
                         logging.info(f"Heartbeat from IP: {address}.")
 
-                        if elapsed_time <= offline_threshold and offline:
+                        if elapsed_time >= offline_threshold and offline:
                             offline = False
                             temp_time = time.time() - failed_heartbeat_time
                             downtime = str(timedelta(seconds=temp_time)).split(".")[0]
@@ -88,14 +88,14 @@ def start_server():
                                 title = "Hawkeye is up!"
                                 body = f"Possible short power outage. Time taken {downtime}."
                                 send_pushbullet_not(title, body)
-                                send_telegram_not(f'{title} {body}')
+                                asyncio.run(send_telegram_not(f'{title} {body}'))
                             else:
                                 # Log and notify for normal downtime
                                 logging.info(f"Hawkeye back up after {downtime}.")
                                 title = "Hawkeye is up!"
                                 body = f"Hawkeye back online after {downtime}."
                                 send_pushbullet_not(title, body)
-                                send_telegram_not(f'{title} {body}')
+                                asyncio.run(send_telegram_not(f'{title} {body}'))
                     else:
                         logging.warning("Invalid or outdated heartbeat received")
 
