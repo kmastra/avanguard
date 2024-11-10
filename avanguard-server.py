@@ -150,7 +150,7 @@ async def send_telegram_not(text):
 
 
 async def telegram_check_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global last_heartbeat_time, offline, snooze_start_time, snooze_duration
+    global last_heartbeat_time, offline, snooze_start_time, snooze_duration, offline_threshold
 
     if last_heartbeat_time is None:
         await update.message.reply_text("No heartbeat has been received yet.")
@@ -159,14 +159,14 @@ async def telegram_check_status(update: Update, context: ContextTypes.DEFAULT_TY
         current_time = int(time.time())
         elapsed_time = current_time - last_heartbeat_time
         downtime = str(timedelta(seconds=elapsed_time)).split(".")[0]
-        status = "online" if not offline else "offline"
+        status = "Online" if not offline else "Offline"
 
-        await update.message.reply_text(f"Hawkeye is currently {status}.\nLast heartbeat was {downtime} seconds ago.")
+        await update.message.reply_text(f"Hawkeye is currently {status} with a threshold of {offline_threshold} seconds.\nLast heartbeat was {downtime} ago.")
 
         if snooze_start_time is not None:
             snooze_elapsed_time = current_time - snooze_start_time
             if snooze_elapsed_time < snooze_duration:
-                await update.message.reply_text(f"Notifications are currently snoozed for {snooze_duration - snooze_elapsed_time} seconds more.")        
+                await update.message.reply_text(f"Notifications are currently snoozed for {snooze_duration - snooze_elapsed_time} seconds more.")      
 
 
 async def telegram_snooze(update: Update, context: ContextTypes.DEFAULT_TYPE):
