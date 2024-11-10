@@ -78,7 +78,7 @@ async def handle_client(reader, writer):
     logging.warning(f"Connection from {address}.")
     
     data = await reader.read(1024)
-    if data and await validate_heartbeat(data):
+    if data and validate_heartbeat(data):
         logging.info("Valid heartbeat received from IP: {address}")
 
         # Update last heartbeat time and check elapsed time
