@@ -12,9 +12,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 config = configparser.ConfigParser()
 config.read('config.ini')
 logging.basicConfig(filename='status_log.txt', level=logging.INFO, format='%(asctime)s - %(message)s')
-logging.getLogger('telegram').setLevel(logging.WARNING)
 logging.getLogger('httpx').setLevel(logging.WARNING)
-logging.getLogger('urllib3').setLevel(logging.WARNING)
 last_heartbeat_time = time.time()
 offline_threshold = int(config['Server']['offline_threshold'])
 offline = False
@@ -80,7 +78,7 @@ async def handle_client(reader, writer):
     
     data = await reader.read(1024)
     if data and validate_heartbeat(data):
-        logging.info("Valid heartbeat received from IP: {address}")
+        logging.info(f"Valid heartbeat received from IP: {address}")
 
         # Update last heartbeat time and check elapsed time
         elapsed_time = time.time() - last_heartbeat_time
