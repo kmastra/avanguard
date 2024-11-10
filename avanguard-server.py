@@ -154,7 +154,7 @@ async def telegram_check_status(update: Update, context: ContextTypes.DEFAULT_TY
     elapsed_time = time.time() - last_heartbeat_time
     downtime = str(timedelta(seconds=elapsed_time)).split(".")[0]
     status = "online" if not offline else "offline"
-    await update.message.replay_text(f"Hawkeye is currently {status}.\nLast heartbeat was {downtime} seconds ago.")
+    await update.message.reply_text(f"Hawkeye is currently {status}.\nLast heartbeat was {downtime} seconds ago.")
 
 
 async def telegram_snooze(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -191,7 +191,7 @@ async def telegram_view_logs(update: Update, context: ContextTypes.DEFAULT_TYPE)
         with open('status_log.txt', 'r') as log_file:
             lines = log_file.readlines()[-lines:]
             log_text = ''.join(lines)
-            
+
         await update.message.reply_text(f"Recent logs:\n{log_text}")
     except FileNotFoundError:
         await update.message.reply_text("Log file not found.")
