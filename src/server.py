@@ -107,7 +107,7 @@ async def start_server() -> None:
     """
     Starts the server that listens for heartbeat messages on a specified port.
     """
-    server = await asyncio.start_server(handle_client, '0.0.0.0', 5000)
+    server = await asyncio.start_server(handle_client, server_ip, server_port)
     logging.info("Server started and is listening for heartbeats...")
     async with server:
         await server.serve_forever()
