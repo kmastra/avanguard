@@ -279,7 +279,7 @@ async def telegram_view_logs(update: Update, context: ContextTypes.DEFAULT_TYPE)
         if not (0 <= lines <= 50):
             raise ValueError("Invalid lines count")
 
-        with open('status_log.txt', 'r') as log_file:
+        with open('server_log.txt', 'r') as log_file:
             lines = log_file.readlines()[-lines:]
             log_text = ''.join(lines)
 
