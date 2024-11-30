@@ -1,6 +1,8 @@
 
 # Avanguard - System Heartbeat Monitor
 
+Avanguard is a heartbeat monitoring system I created as my first project to learn Python while addressing a real-life need. The project has gone through many iterations as I learned new techniques and continuously improved it. There are more enhancements planned for the future.
+
 Avanguard is a heartbeat monitoring system designed to check and alert the status of network-connected devices. It ensures that critical systems are operational by sending regular heartbeat signals. If a heartbeat is missed, the system sends notifications via Pushbullet and Telegram, making it ideal for monitoring servers or remote systems to detect power outages or system failures.
 
 - **Real-time Monitoring**: Continuously checks the heartbeat of connected systems thtough TCP socket protocol to detect downtimes.
