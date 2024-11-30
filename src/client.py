@@ -5,8 +5,10 @@ import time
 import os
 import argparse
 import logging
+from dotenv import load_dotenv
 
 # Configuration values for server communication
+load_dotenv()
 server_ip = os.getenv('SERVER_IP')
 server_port = int(os.getenv('SERVER_PORT'))
 secret_key = os.getenv('SECRET_KEY').encode()
