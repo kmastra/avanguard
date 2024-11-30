@@ -82,19 +82,22 @@ def validate_heartbeat(data: bytes) -> bool:
             return True
         else:
             logging.warning(
-                "Failed timestamp validation - time difference too large.")
+                "Failed timestamp validation - time difference too large."
+            )
             return False
     except ValueError as ve:
-        logging.error(f"ValueError in validate_heartbeat: {
-                      ve} - Data received: {data}")
+        logging.error(
+            f"ValueError in validate_heartbeat: {ve} - Data received: {data}"
+        )
         return False
     except TypeError as te:
-        logging.error(f"TypeError in validate_heartbeat: {
-                      te} - Data received: {data}")
+        logging.error(
+            f"TypeError in validate_heartbeat: {te} - Data received: {data}"
+        )
         return False
     except Exception as e:
-        logging.error(f"Unexpected error in validate_heartbeat: {
-                      e} - Data received: {data}")
+        logging.error(f"Unexpected error in validate_heartbeat: {e}"
+                      f"- Data received: {data}")
         return False
 
 
@@ -137,8 +140,9 @@ async def handle_client(reader, writer) -> None:
 
             # Notify depending on the length of the downtime
             if temp_time < 300:
-                logging.info(f"Hawkeye back up after {
-                             downtime}. Possible short power outage.")
+                logging.info(
+                    f"Hawkeye back up after {downtime}. Possible short outage."
+                )
                 await send_notification("Hawkeye is up!", f"Possible short power outage. Time taken {downtime}.")
             else:
                 logging.info(f"Hawkeye back up after {downtime}.")
@@ -164,8 +168,8 @@ async def check_heartbeat() -> None:
             failed_heartbeat_time = last_heartbeat_time
             downtime = str(timedelta(seconds=elapsed_time)).split(".")[0]
 
-            logging.warning(
-                f"More than {offline_threshold} seconds passed since last heartbeat.")
+            logging.warning(f"More than {offline_threshold} seconds "
+                            f"passed since last heartbeat.")
             await send_notification("Hawkeye is down!", f"Downtime: {downtime}")
 
 
@@ -254,10 +258,8 @@ async def telegram_snooze(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             elapsed_time = current_time - snooze_start_time
             snooze_duration = snooze_duration - elapsed_time + duration
             snooze_start_time = current_time  # Reset start time to now
-            await update.message.reply_text(
-                f"Snooze already active. Extending snooze by {
-                    duration} seconds. Total snooze time is now {snooze_duration} seconds."
-            )
+            await update.message.reply_text(f"Snooze already active. Extending snooze by {duration} "
+                                            f"seconds. Total snooze time is now {snooze_duration} seconds.")
     except (IndexError, ValueError):
         await update.message.reply_text("Usage: /snooze <seconds> (between 5 and 36000) or /snooze disable.")
 

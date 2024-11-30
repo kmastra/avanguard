@@ -6,3 +6,5 @@ venv/
 .idea/
 test.py
 .env
+server_log.txt
+client_log.txt
