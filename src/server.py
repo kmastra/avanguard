@@ -8,8 +8,10 @@ from datetime import timedelta
 from pushbullet import Pushbullet
 from telegram import Update, Bot
 from telegram.ext import Application, CommandHandler, ContextTypes
+from dotenv import load_dotenv
 
 # Load configuration settings from .env
+load_dotenv()
 server_ip = os.getenv('SERVER_IP')
 server_port = int(os.getenv('SERVER_PORT'))
 offline_threshold = int(os.getenv('OFFLINE_THRESHOLD'))
