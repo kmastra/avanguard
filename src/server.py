@@ -38,19 +38,32 @@ snooze_duration = 0
 
 async def try_notify_channels(title: str, body: str) -> None:
     """
-    Sends a notification via Pushbullet and/or Telegram depending on configuration settings.
+    Sends a notification via Pushbullet and/or Telegram depending on snooze settings.
 
     Args:
     title (str): The title of the notification message.
     body (str): The body of the notification message.
     """
     if is_notification_allowed():
-        if pushbullet_use:
-            send_pushbullet_notification(title, body)
-        await send_telegram_notification(f'{title} {body}')
+        notify_channels(title, body)
         logging.warning(f'Sent notification: "{title} {body}"')
     else:
         logging.info(f'Notification "{title} {body}" snoozed, not sent.')
+
+
+async def notify_channels(title: str, body: str) -> None:
+    """
+    Sends a notification via Pushbullet and/or Telegram.
+
+    Args:
+    title (str): The title of the notification message.
+    body (str): The body of the notification message.
+    """
+
+    if pushbullet_use:
+        send_pushbullet_notification(title, body)
+    await send_telegram_notification(f'{title} {body}')
+    logging.warning(f'Sent notification: "{title} {body}"')
 
 
 def is_heartbeat_valid(data: bytes) -> bool:
