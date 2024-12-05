@@ -36,7 +36,7 @@ snooze_start_time = None
 snooze_duration = 0
 
 
-async def send_notification(title: str, body: str) -> None:
+async def try_notify_channels(title: str, body: str) -> None:
     """
     Sends a notification via Pushbullet and/or Telegram depending on configuration settings.
 
@@ -44,16 +44,16 @@ async def send_notification(title: str, body: str) -> None:
     title (str): The title of the notification message.
     body (str): The body of the notification message.
     """
-    if should_send_notification():
+    if is_notification_allowed():
         if pushbullet_use:
-            send_pushbullet_not(title, body)
-        await send_telegram_not(f'{title} {body}')
+            send_pushbullet_notification(title, body)
+        await send_telegram_notification(f'{title} {body}')
         logging.warning(f'Sent notification: "{title} {body}"')
     else:
         logging.info(f'Notification "{title} {body}" snoozed, not sent.')
 
 
-def validate_heartbeat(data: bytes) -> bool:
+def is_heartbeat_valid(data: bytes) -> bool:
     """
     Validates the HMAC and timestamp of the received heartbeat.
 
@@ -103,17 +103,17 @@ def validate_heartbeat(data: bytes) -> bool:
         return False
 
 
-async def start_server() -> None:
+async def run_heartbeat_server() -> None:
     """
     Starts the server that listens for heartbeat messages on a specified port.
     """
-    server = await asyncio.start_server(handle_client, server_ip, server_port)
+    server = await asyncio.start_server(process_heartbeat_from_client, server_ip, server_port)
     logging.info("Server started and is listening for heartbeats...")
     async with server:
         await server.serve_forever()
 
 
-async def handle_client(reader, writer) -> None:
+async def process_heartbeat_from_client(reader, writer) -> None:
     """
     Handles incoming connections and processes data from clients to validate heartbeats.
 
@@ -127,7 +127,7 @@ async def handle_client(reader, writer) -> None:
     logging.warning(f"Connection from {address}.")
 
     data = await reader.read(1024)
-    if data and validate_heartbeat(data):
+    if data and is_heartbeat_valid(data):
         logging.info(f"Valid heartbeat received from IP: {address}")
 
         # Update last heartbeat time and check elapsed time since last valid heartbeat
@@ -145,16 +145,16 @@ async def handle_client(reader, writer) -> None:
                 logging.info(
                     f"Hawkeye back up after {downtime}. Possible short outage."
                 )
-                await send_notification("Hawkeye is up!", f"Possible short power outage. Time taken {downtime}.")
+                await try_notify_channels("Hawkeye is up!", f"Possible short power outage. Time taken {downtime}.")
             else:
                 logging.info(f"Hawkeye back up after {downtime}.")
-                await send_notification("Hawkeye is up!", f"Hawkeye back online after {downtime}.")
+                await try_notify_channels("Hawkeye is up!", f"Hawkeye back online after {downtime}.")
 
     writer.close()
     await writer.wait_closed()
 
 
-async def check_heartbeat() -> None:
+async def monitor_heartbeat_status() -> None:
     """
     Periodically checks if heartbeats are being received within the expected interval.
     If not, sets the system status to offline and sends notifications.
@@ -172,10 +172,10 @@ async def check_heartbeat() -> None:
 
             logging.warning(f"More than {offline_threshold} seconds "
                             f"passed since last heartbeat.")
-            await send_notification("Hawkeye is down!", f"Downtime: {downtime}")
+            await try_notify_channels("Hawkeye is down!", f"Downtime: {downtime}")
 
 
-def send_pushbullet_not(title: str, body: str) -> None:
+def send_pushbullet_notification(title: str, body: str) -> None:
     """
     Sends a notification through Pushbullet service.
 
@@ -188,7 +188,7 @@ def send_pushbullet_not(title: str, body: str) -> None:
     logging.warning(f'Send via Pushbullet. "{title} {body}"')
 
 
-async def send_telegram_not(text: str) -> None:
+async def send_telegram_notification(text: str) -> None:
     """
     Sends a notification message through a Telegram bot.
 
@@ -203,7 +203,7 @@ async def send_telegram_not(text: str) -> None:
         logging.error(f"Failed to send Telegram notification: {e}")
 
 
-async def telegram_check_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def telegram_command_check_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     A Telegram command handler function that checks the current status of the system and replies to the user.
 
@@ -228,7 +228,7 @@ async def telegram_check_status(update: Update, context: ContextTypes.DEFAULT_TY
                 await update.message.reply_text(f"Notifications are currently snoozed for {snooze_duration - snooze_elapsed_time} seconds more.")
 
 
-async def telegram_snooze(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def telegram_command_snooze_notifications(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     A Telegram command handler function that sets or disables a snooze period for notifications.
 
@@ -266,7 +266,7 @@ async def telegram_snooze(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await update.message.reply_text("Usage: /snooze <seconds> (between 5 and 36000) or /snooze disable.")
 
 
-async def telegram_view_logs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def telegram_command_view_logs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     A Telegram command handler function that displays recent log entries.
 
@@ -290,7 +290,7 @@ async def telegram_view_logs(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("Usage: /view_logs <lines> (between 0 and 50).")
 
 
-async def telegram_set_offile_threshold(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def telegram_command_set_offline_threshold(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     A Telegram command handler function that adjusts the offline threshold for notifications.
 
@@ -307,7 +307,7 @@ async def telegram_set_offile_threshold(update: Update, context: ContextTypes.DE
         await update.message.reply_text("Usage: /set_threshold <seconds>")
 
 
-async def telegram_show_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def telegram_command_show_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     A Telegram command handler function that shows a help message with available commands.
 
@@ -327,7 +327,7 @@ async def telegram_show_help(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update.message.reply_text(help_text)
 
 
-def should_send_notification() -> bool:
+def is_notification_allowed() -> bool:
     """
     Determines whether a notification should be sent based on the snooze settings.
 
@@ -342,7 +342,7 @@ def should_send_notification() -> bool:
     return True
 
 
-async def start_telegram_bot() -> None:
+async def initialize_telegram_bot() -> None:
     """
     Initializes and starts the Telegram bot with command handlers set up.
 
@@ -350,12 +350,12 @@ async def start_telegram_bot() -> None:
     """
     application = Application.builder().token(telegram_bot_token).build()
     # Adding command handlers for Telegram commands
-    application.add_handler(CommandHandler("help", telegram_show_help))
-    application.add_handler(CommandHandler("snooze", telegram_snooze))
-    application.add_handler(CommandHandler("status", telegram_check_status))
+    application.add_handler(CommandHandler("help", telegram_command_show_help))
+    application.add_handler(CommandHandler("snooze", telegram_command_snooze_notifications))
+    application.add_handler(CommandHandler("status", telegram_command_check_status))
     application.add_handler(CommandHandler(
-        "set_threshold", telegram_set_offile_threshold))
-    application.add_handler(CommandHandler("view_logs", telegram_view_logs))
+        "set_threshold", telegram_command_set_offline_threshold))
+    application.add_handler(CommandHandler("view_logs", telegram_command_view_logs))
 
     logging.info("Starting Telegram bot...")
     await application.initialize()
@@ -371,11 +371,11 @@ async def start_telegram_bot() -> None:
         await application.stop()
 
 
-async def main() -> None:
+async def run_all_services() -> None:
     """
     The main coroutine that gathers and runs the server, heartbeat check, and Telegram bot concurrently.
     """
-    await asyncio.gather(start_server(), check_heartbeat(), start_telegram_bot())
+    await asyncio.gather(run_heartbeat_server(), monitor_heartbeat_status(), initialize_telegram_bot())
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run(run_all_services())

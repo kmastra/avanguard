@@ -18,7 +18,7 @@ logging.basicConfig(filename='client_log.txt',
                     level=logging.INFO, format='%(asctime)s - %(message)s')
 
 
-def main():
+def initialize_heartbeat_client():
     """
     Main function that sets up the command-line arguments and starts the heartbeat sending process.
     """
@@ -29,10 +29,10 @@ def main():
     args = parser.parse_args()
 
     # Start sending heartbeats at the specified interval
-    send_heartbeat(args.interval)
+    send_heartbeat_periodically(args.interval)
 
 
-def create_heartbeat() -> bytes:
+def generate_heartbeat() -> bytes:
     """
     Creates a heartbeat message encoded with HMAC to ensure authenticity.
 
@@ -52,7 +52,7 @@ def create_heartbeat() -> bytes:
     return full_message.encode()
 
 
-def send_heartbeat(interval: int, iterations: int = None):
+def send_heartbeat_periodically(interval: int, iterations: int = None):
     """
     Continuously sends heartbeat messages to the server at a specified interval.
 
@@ -66,7 +66,7 @@ def send_heartbeat(interval: int, iterations: int = None):
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
                 # Connect to the server
                 client_socket.connect((server_ip, server_port))
-                heartbeat_message = create_heartbeat()
+                heartbeat_message = generate_heartbeat()
                 # Send the heartbeat message
                 client_socket.sendall(heartbeat_message)
                 logging.info("Heartbeat sent successfully.")
@@ -83,4 +83,4 @@ def send_heartbeat(interval: int, iterations: int = None):
 
 
 if __name__ == "__main__":
-    main()
+    initialize_heartbeat_client()

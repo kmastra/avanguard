@@ -8,7 +8,7 @@ from unittest.mock import patch, AsyncMock
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '../src')))
-from server import send_notification, validate_heartbeat
+from server import try_notify_channels, is_heartbeat_valid
 
 
 class TestServer(unittest.TestCase):
@@ -18,9 +18,9 @@ class TestServer(unittest.TestCase):
     @patch('client.send_telegram_not', new_callable=AsyncMock)
     @patch('client.pushbullet_use', True)  # Simulate Pushbullet enabled
     @patch('logging.warning')
-    async def test_send_notification_with_pushbullet(self, mock_log_warning, mock_telegram, mock_pushbullet, mock_should_send):
+    async def test_try_notify_channels_with_pushbullet(self, mock_log_warning, mock_telegram, mock_pushbullet, mock_should_send):
         # Act
-        await send_notification("Test Title", "Test Body")
+        await try_notify_channels("Test Title", "Test Body")
 
         # Assert
         mock_should_send.assert_called_once()
@@ -35,7 +35,7 @@ class TestServer(unittest.TestCase):
     @patch('logging.warning')
     async def test_send_notification_without_pushbullet(self, mock_log_warning, mock_telegram, mock_pushbullet, mock_should_send):
         # Act
-        await send_notification("Test Title", "Test Body")
+        await try_notify_channels("Test Title", "Test Body")
 
         # Assert
         mock_should_send.assert_called_once()
@@ -49,7 +49,7 @@ class TestServer(unittest.TestCase):
     @patch('logging.info')
     async def test_notification_snoozed(self, mock_log_info, mock_telegram, mock_pushbullet, mock_should_send):
         # Act
-        await send_notification("Test Title", "Test Body")
+        await try_notify_channels("Test Title", "Test Body")
 
         # Assert
         mock_should_send.assert_called_once()
@@ -68,5 +68,5 @@ class TestValidateHeartbeat(unittest.TestCase):
         self.valid_data = f"heartbeat:{self.valid_timestamp}:{self.valid_hmac}".encode()
 
     def test_validate_heartbeat(self):
-        self.assertTrue(validate_heartbeat(self.valid_data))
+        self.assertTrue(is_heartbeat_valid(self.valid_data))
 
